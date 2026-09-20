@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RehberMetre</title>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f1ede1;
+    --paper-raised: #ffffff;
+    --ink: #1c2b3a;
+    --ink-soft: #55637a;
+    --rule: #d8d0bd;
+    --moss: #35604f;
+    --moss-dim: #4f7d69;
+    --ochre: #b9822f;
+    --danger: #a4432f;
+    --focus: #2f6fae;
+    --radius: 3px;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161c22;
+      --paper-raised: #1e262e;
+      --ink: #e8e6df;
+      --ink-soft: #9aa4b0;
+      --rule: #333f4a;
+      --moss: #6fae94;
+      --moss-dim: #5c9480;
+      --ochre: #d9a75a;
+      --danger: #d98a75;
+      --focus: #7db4e8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #161c22;
+    --paper-raised: #1e262e;
+    --ink: #e8e6df;
+    --ink-soft: #9aa4b0;
+    --rule: #333f4a;
+    --moss: #6fae94;
+    --moss-dim: #5c9480;
+    --ochre: #d9a75a;
+    --danger: #d98a75;
+    --focus: #7db4e8;
+  }
+ 
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+ 
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  a { color: inherit; }
+  button { font-family: var(--font-body); }
+  input, select, textarea {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+    border-color: var(--focus);
+  }
+  textarea { resize: vertical; min-height: 64px; line-height: 1.45; }
+  label { font-size: 13px; color: var(--ink-soft); display: block; margin-bottom: 6px; }
+ 
+  /* ---- Splash ---- */
+  .splash { min-height: 90vh; display: flex; flex-direction: column; justify-content: center; }
+  .splash .kicker { font-size: 14px; color: var(--moss-dim); margin-bottom: 10px; }
+  .splash h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.08; max-width: 11ch; }
+  .splash p.lede { color: var(--ink-soft); font-size: 17px; line-height: 1.55; max-width: 42ch; margin: 18px 0 40px; }
+  .role-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .role-card {
+    flex: 1 1 220px;
+    text-align: left;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 20px 20px 22px;
+    cursor: pointer;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .role-card:hover { border-color: var(--moss-dim); transform: translateY(-1px); }
+  .role-card h3 { font-size: 20px; margin-bottom: 6px; }
+  .role-card p { color: var(--ink-soft); font-size: 14px; margin: 0; line-height: 1.5; }
+  .role-card .arrow { color: var(--moss); font-size: 14px; margin-top: 14px; display: block; }
+ 
+  /* ---- Shared top bar ---- */
+  .topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px; gap: 12px; flex-wrap: wrap; }
+  .topbar h1 { font-size: 26px; }
+  .topbar .who { color: var(--ink-soft); font-size: 14px; }
+  .back-link { font-size: 13px; color: var(--ink-soft); text-decoration: none; border: none; background: none; cursor: pointer; padding: 0; }
+  .back-link:hover { color: var(--ink); }
+ 
+  /* ---- Form card ---- */
+  .card { background: var(--paper-raised); border: 1px solid var(--rule); border-radius: var(--radius); padding: 22px; margin-bottom: 26px; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
+ 
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--moss);
+    background: var(--moss);
+    color: #fdfcf8;
+    font-size: 14px; font-weight: 600;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--moss-dim); border-color: var(--moss-dim); }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .btn-ghost { background: transparent; color: var(--ink-soft); border-color: var(--rule); }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--ink-soft); background: transparent; }
+ 
+  .status-line { font-size: 13px; color: var(--ink-soft); margin-top: 10px; min-height: 18px; }
+  .status-line.ok { color: var(--moss); }
+  .status-line.err { color: var(--danger); }
+ 
+  /* ---- Entries list ---- */
+  .section-label { font-size: 13px; color: var(--ink-soft); text-transform: none; margin: 30px 0 12px; display: flex; align-items: center; gap: 10px; }
+  .section-label .count { color: var(--ink); font-weight: 600; }
+ 
+  .entry {
+    padding: 14px 0;
+    border-top: 1px solid var(--rule);
+    display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap;
+  }
+  .entry:last-child { border-bottom: 1px solid var(--rule); }
+  .entry .time { font-size: 12px; color: var(--ink-soft); width: 44px; flex-shrink: 0; }
+  .entry .body { flex: 1; min-width: 200px; }
+  .entry .subject { font-weight: 600; font-size: 15px; }
+  .entry .subject .dot { color: var(--ochre); margin: 0 6px; }
+  .entry .topic { color: var(--ink-soft); font-size: 14px; }
+  .entry .note { margin-top: 4px; font-size: 14px; line-height: 1.5; }
+  .entry .student-name { font-size: 12px; color: var(--moss-dim); font-weight: 600; }
+ 
+  .empty { color: var(--ink-soft); font-size: 14px; padding: 22px 0; text-align: center; border-top: 1px solid var(--rule); }
+ 
+  /* ---- Coach filters ---- */
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
+  .filters select, .filters input[type="date"] { width: auto; }
+  .pulse { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
+  .pulse .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--moss); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+ 
+  .student-group { margin-bottom: 6px; }
+  .student-group-head { display: flex; justify-content: space-between; align-items: baseline; padding-top: 22px; }
+  .student-group-head h3 { font-size: 16px; }
+  .student-group-head .n { font-size: 12px; color: var(--ink-soft); }
+ 
+  .offline-banner {
+    background: var(--paper-raised); border: 1px solid var(--rule); border-radius: var(--radius);
+    padding: 14px 16px; font-size: 13px; color: var(--ink-soft); margin-bottom: 20px; line-height: 1.5;
+  }
+ 
+  /* ---- Sub-tabs ---- */
+  .tab-row { display: flex; gap: 8px; margin-bottom: 22px; }
+  .tab-btn { padding: 8px 14px; border-radius: var(--radius); border: 1px solid var(--rule); background: var(--paper-raised); color: var(--ink-soft); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .tab-btn.active { background: var(--moss); color: #fdfcf8; border-color: var(--moss); }
+ 
+  /* ---- Topic / resource tracker ---- */
+  .topic-subject { border: 1px solid var(--rule); border-radius: var(--radius); margin-bottom: 12px; background: var(--paper-raised); }
+  .topic-subject > summary { padding: 14px 16px; cursor: pointer; font-family: var(--font-display); font-size: 17px; list-style: none; }
+  .topic-subject > summary::-webkit-details-marker { display: none; }
+  .topic-subject > summary::before { content: "▸ "; color: var(--moss-dim); font-family: var(--font-body); }
+  .topic-subject[open] > summary::before { content: "▾ "; }
+  .topic-subject-body { padding: 0 16px 16px; overflow-x: auto; }
+  .resource-names-row, .topic-row { display: grid; grid-template-columns: 1fr repeat(4, 78px); gap: 8px; align-items: center; min-width: 460px; }
+  .resource-names-row { margin-bottom: 8px; }
+  .resource-names-row input { font-size: 12px; padding: 6px 8px; text-align: center; }
+  .topic-row { padding: 7px 0; border-top: 1px solid var(--rule); font-size: 14px; }
+  .topic-row .topic-name { padding-right: 8px; }
+  .topic-row input[type="checkbox"] { width: 18px; height: 18px; margin: 0 auto; display: block; cursor: pointer; accent-color: var(--moss); }
+  .topic-row input[type="checkbox"]:disabled { cursor: default; opacity: .8; }
+  .resource-col-label { font-size: 10px; color: var(--ink-soft); text-align: center; }
+ 
+  /* ---- Stopwatch ---- */
+  .pomo-clock { font-family: var(--font-display); font-size: 56px; font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+ 
+  /* ---- Weekly questions ---- */
+  .weekly-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  @media (max-width: 520px) { .weekly-grid { grid-template-columns: 1fr; } }
+  .weekly-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--paper-raised); border: 1px solid var(--rule); border-radius: var(--radius); padding: 8px 12px; }
+  .weekly-row label { font-size: 13px; margin: 0; color: var(--ink); }
+  .weekly-row input { width: 68px; text-align: center; padding: 6px 8px; font-size: 14px; }
+ 
+  /* ---- Brand ---- */
+  .brand-name { font-family: var(--font-display); font-weight: 600; font-size: 27px; color: var(--ink); letter-spacing: -0.01em; }
+  .brand-tagline { font-size: 12px; color: var(--ink-soft); margin-top: 3px; letter-spacing: .02em; }
+  .brand-mini { font-size: 11px; color: var(--ink-soft); margin-bottom: 16px; letter-spacing: .02em; }
+  .brand-mini strong { font-family: var(--font-display); color: var(--ink); font-weight: 600; font-size: 13px; }
+  .brand-mini span { opacity: .75; margin-left: 6px; }
+ 
+  /* ---- Site nav ---- */
+  .site-nav { display: flex; justify-content: space-between; align-items: center; padding-bottom: 22px; margin-bottom: 28px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; gap: 14px; }
+  .site-nav .site-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; background: none; border: none; padding: 0; }
+  .site-nav .site-brand img { width: 26px; height: auto; }
+  .site-nav .site-brand span { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--ink); }
+  .site-nav-links { display: flex; gap: 2px; flex-wrap: wrap; }
+  .site-nav-links button { background: none; border: none; font-family: var(--font-body); font-size: 14px; color: var(--ink-soft); padding: 8px 13px; border-radius: var(--radius); cursor: pointer; }
+  .site-nav-links button:hover { color: var(--ink); }
+  .site-nav-links button.active { color: var(--ink); font-weight: 600; background: var(--paper-raised); border: 1px solid var(--rule); }
+  .hero-cta { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--moss); background: var(--moss); color: #fdfcf8; font-size: 15px; font-weight: 600; padding: 12px 22px; border-radius: var(--radius); cursor: pointer; margin-top: 8px; }
+  .hero-cta:hover { background: var(--moss-dim); border-color: var(--moss-dim); }
+  .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 8px; }
+  @media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature-card { background: var(--paper-raised); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; }
+  .feature-card h3 { font-size: 16px; margin-bottom: 6px; }
+  .feature-card p { color: var(--ink-soft); font-size: 14px; line-height: 1.55; margin: 0; }
+  .feature-card .who { font-size: 12px; color: var(--moss-dim); font-weight: 600; margin-bottom: 8px; display: block; }
+</style>
+</head>
+<body>
+<div id="app" class="wrap"></div>
+ 
+<script>
+(function () {
+  "use strict";
+ 
+  var LGS_TOPICS = {
+    "Türkçe": ["Filimsiler","Cümlenin Öğeleri","Fiil Çatısı","Sözcükte Anlam","Cümlede Anlam","Cümle Çeşitleri","Yazım Kuralları","Paragraf","Noktalama İşaretleri","Anlatım Bozuklukları"],
+    "Matematik": ["Çarpanlar ve Katlar","Üslü İfadeler","Kareköklü İfadeler","Veri Analizi","Basit Olayların Olma Olasılığı","Cebirsel İfadeler ve Özdeşlikler","Doğrusal Denklemler","Eşitsizlikler","Üçgenler","Eşlik ve Benzerlik","Dönüşüm Geometrisi","Geometrik Cisimler"],
+    "İngilizce": ["Friendship","Teen Life","In The Kitchen","On The Phone","The Internet","Adventures","Tourism","Chores","Science","Natural Forces"],
+    "Fen Bilimleri": ["Mevsimler ve İklim","DNA ve Genetik Kod","Basınç","Madde ve Endüstri","Basit Makineler","Enerji Dönüşümleri ve Çevre Bilimi","Elektrik Yükleri ve Elektrik Enerjisi"],
+    "İnkılap Tarihi": ["Bir Kahraman Doğuyor","Milli Uyanış - Bağımsızlık Yolunda","Milli Bir Destan - Ya İstiklal Ya Ölüm","Atatürkçülük ve Çağdaşlaşan Türkiye","Demokratikleşme Çabaları","Atatürk Dönemi Türk Dış Politikası","Atatürk'ün Ölümü ve Sonrası"],
+    "Din Kültürü": ["Kader İnancı","Zekat ve Sadaka","Din ve Hayat","Hz. Muhammed'in Örnekliği","Kur'an-ı Kerim ve Özellikleri"]
+  };
+  var OTHER_SUBJECT = "__diger_ders__";
+  var OTHER_TOPIC = "__diger_konu__";
+ 
+  var TEMPLATE_MESSAGES = [
+    "Öğretmenim ödevlerimi yaptım",
+    "Bugün yeterince ders çalıştım",
+    "Bugün ders çalışamadım",
+    "En kısa sürede iletişime geçebilir miyiz?",
+    "Bir konuyu anlamadım, yardım eder misiniz?",
+    "Bugün deneme sınavı çözdüm"
+  ];
+ 
+  var YKS_TOPICS = {"TYT Türkçe":["Sözcükte Anlam","Cümlede Anlam","Paragraf","Paragrafta Anlatım Teknikleri","Paragrafta Düşünceyi Geliştirme Yolları","Paragrafta Yapı","Paragrafta Konu-Ana Düşünce","Paragrafta Yardımcı Düşünce","Ses Bilgisi","Yazım Kuralları","Noktalama İşaretleri","Sözcükte Yapı","Sözcük Türleri","İsimler","Zamirler","Sıfatlar","Zarflar","Edat-Bağlaç-Ünlem","Fiiller","Fiilde Anlam (Kip-Kişi-Yapı)","Ek Fiil","Fiilimsi","Fiilde Çatı","Cümlenin Ögeleri","Cümle Türleri","Anlatım Bozukluğu"],"TYT Matematik":["Temel Kavramlar","Sayı Basamakları","Bölme ve Bölünebilme","EBOB-EKOK","Rasyonel Sayılar","Basit Eşitsizlikler","Mutlak Değer","Üslü Sayılar","Köklü Sayılar","Çarpanlara Ayırma","Oran Orantı","Denklem Çözme","Problemler","Sayı Problemleri","Kesir Problemleri","Yaş Problemleri","Yüzde Problemleri","Kar Zarar Problemleri","Karışım Problemleri","Hareket Problemleri","İşçi Problemleri","Tablo-Grafik Problemleri","Rutin Olmayan Problemler","Kümeler","Mantık","Fonksiyonlar","Polinomlar","2. Dereceden Denklemler","Permütasyon ve Kombinasyon","Olasılık","Veri-İstatistik"],"TYT Geometri":["Doğruda Açı","Üçgende Açı","Ek Çizimler","Özel Üçgenler","Dik Üçgen","İkizkenar Üçgen","Eşkenar Üçgen","Açıortay","Kenarortay","Üçgende Eşlik-Benzerlik","Açı-Kenar Bağıntıları","Üçgende Alan","Üçgende Merkezler","Çokgenler","Dörtgenler","Deltoid","Paralelkenar","Eşkenar Dörtgen","Dikdörtgen","Kare","Yamuk","Çember ve Daire","Çemberde Açı","Çemberde Uzunluk","Dairede Alan","Analitik Geometri","Noktanın Analitiği","Doğrunun Analitiği","Katı Cisimler","Prizmalar","Küp","Silindir","Piramit","Koni","Küre"],"TYT Fizik":["Fizik Bilimine Giriş","Madde ve Özellikleri","Hareket ve Kuvvet","İş, Güç ve Enerji","Isı, Sıcaklık ve Genleşme","Basınç","Kaldırma Kuvveti","Elektrostatik","Elektrik ve Manyetizma","Dalgalar","Optik"],"TYT Kimya":["Kimya Bilimi","Atom ve Periyodik Sistem","Kimyasal Türler Arası Etkileşimler","Maddenin Halleri","Doğa ve Kimya","Kimyanın Temel Kanunları","Kimyasal Hesaplamalar","Karışımlar","Asit, Baz ve Tuz","Kimya Her Yerde"],"TYT Biyoloji":["Canlıların Ortak Özellikleri","Canlıların Temel Bileşenleri","Hücre ve Organelleri","Hücre Zarından Madde Geçişi","Canlıların Sınıflandırılması","Mitoz ve Eşeysiz Üreme","Mayoz ve Eşeyli Üreme","Kalıtım","Ekosistem Ekolojisi","Güncel Çevre Sorunları"],"TYT Tarih":["Tarih ve Zaman","İnsanlığın İlk Dönemleri","İlk ve Orta Çağlarda Türk Dünyası","İslam Medeniyetinin Doğuşu ve İlk İslam Devletleri","Türklerin İslamiyet'i Kabulü ve İlk Türk İslam Devletleri","Orta Çağ'da Dünya","Yerleşme ve Devletleşme Sürecinde Selçuklu Türkiyesi","Beylikten Devlete Osmanlı Siyaseti","Devletleşme Sürecinde Savaşçılar ve Askerler","Beylikten Devlete Osmanlı Medeniyeti","Dünya Gücü Osmanlı","Sultan ve Osmanlı Merkez Teşkilatı","Klasik Çağda Osmanlı Toplum Düzeni","Değişen Dünya Dengeleri Karşısında Osmanlı Siyaseti","Değişim Çağında Avrupa ve Osmanlı","Uluslararası İlişkilerde Denge Stratejisi (1774-1914)","Devrimler Çağında Değişen Devlet-Toplum İlişkileri","Sermaye ve Emek","19. ve 20. Yüzyılda Değişen Gündelik Hayat","20. Yüzyıl Başlarında Osmanlı Devleti ve Dünya","Milli Mücadele","Atatürkçülük ve Türk İnkılabı"],"TYT Coğrafya":["Doğa ve İnsan","Dünya'nın Şekli ve Hareketleri","Coğrafi Konum","Harita Bilgisi","İklim Bilgisi","Dünya'nın Tektonik Oluşumu","Jeolojik Zamanlar","İç Kuvvetler","Dış Kuvvetler","Kayaçlar","Türkiye'nin Yer Şekilleri","Su-Toprak ve Bitkiler","Nüfus","Türkiye'de Nüfus","Göç","Ekonomik Faaliyetler","Bölgeler","Uluslararası Ulaşım Hatları","Çevre ve Toplum","Doğal Afetler"],"TYT Felsefe":["Felsefenin Konusu","Bilgi Felsefesi","Varlık Felsefesi","Ahlak Felsefesi","Sanat Felsefesi","Din Felsefesi","Siyaset Felsefesi","Bilim Felsefesi","İlk Çağ Felsefesi","2. Yüzyıl ve 15. Yüzyıl Felsefeleri","15. Yüzyıl ve 17. Yüzyıl Felsefeleri","18. Yüzyıl ve 19. Yüzyıl Felsefeleri","20. Yüzyıl Felsefesi"],"TYT Din Kültürü":["Bilgi ve İnanç","Din ve İslam","İslam ve İbadet","Gençlik ve Değerler","İslam Medeniyeti ve Özellikleri","Allah İnancı ve İnsan","Allah'ın Varlığı ve Birliği","Allah'ın İsim ve Sıfatları","Kur'an-ı Kerim'de İnsan ve Özellikleri","İnsanın Allah İle İrtibatı","Kur'an-ı Kerim'de Gençler","Bir Genç Olarak Hz. Muhammed","Hz. Muhammed ve Gençler","Bazı Genç Sahabiler","Din ve Aile","Din, Kültür ve Sanat","Din ve Çevre","Din ve Sosyal Değişim","Din ve Ekonomi","Din ve Sosyal Adalet","İslam Ahlakı","Dinî Yorum Farklılıklarının Sebepleri","Dinî Yorumlarla İlgili Bazı Kavramlar","İslam Düşüncesinde İtikadi ve Siyasi Yorumlar","İslam Düşüncesinde Fıkhi Yorumlar"],"AYT Edebiyat":["Anlam Bilgisi","Dil Bilgisi","Güzel Sanatlar ve Edebiyat","Metinlerin Sınıflandırılması","Şiir Bilgisi","Söz Sanatları","Edebi Akımlar","Türk Edebiyatı Dönemleri","İslamiyet Öncesi Türk Edebiyatı ve Geçiş Dönemi","Halk Edebiyatı","Divan Edebiyatı","Tanzimat Edebiyatı","Servet-i Fünun Edebiyatı","Fecr-i Ati Edebiyatı","Milli Edebiyat","Cumhuriyet Dönemi Edebiyatı","Dünya Edebiyatı"],"AYT Matematik":["Temel Kavramlar","Sayı Basamakları","Bölme ve Bölünebilme","EBOB-EKOK","Rasyonel Sayılar","Basit Eşitsizlikler","Mutlak Değer","Üslü Sayılar","Köklü Sayılar","Çarpanlara Ayırma","Oran Orantı","Denklem Çözme","Problemler","Kümeler","Mantık","Fonksiyonlar","Polinomlar","2. Dereceden Denklemler","Permütasyon ve Kombinasyon","Olasılık","Veri-İstatistik","Karmaşık Sayılar","2. Dereceden Eşitsizlikler","Parabol","Trigonometri","Logaritma","Diziler","Limit","Türev","İntegral"],"AYT Geometri":["Doğruda Açı","Üçgende Açı","Ek Çizimler","Özel Üçgenler","Dik Üçgen","İkizkenar Üçgen","Eşkenar Üçgen","Açıortay","Kenarortay","Üçgende Eşlik-Benzerlik","Açı-Kenar Bağıntıları","Üçgende Alan","Üçgende Merkezler","Çokgenler","Özel Dörtgenler","Deltoid","Paralelkenar","Eşkenar Dörtgen","Dikdörtgen","Kare","Yamuk","Çember ve Daire","Analitik Geometri","Noktanın Analitiği","Doğrunun Analitiği","Dönüşüm Geometrisi","Katı Cisimler (Uzay Geometri)","Prizmalar","Küp","Silindir","Piramit","Koni","Küre","Çemberin Analitiği"],"AYT Coğrafya":["Ekosistemlerin Özellikleri ve İşleyişi","Ekstrem Doğa Olayları","Küresel İklim Değişimi","Nüfus Politikaları","Yerleşmelerin Özellikleri","Ekonomik Faaliyetler ve Doğal Kaynaklar","Türkiye'de Ekonomi","Geçmişten Geleceğe Şehir ve Ekonomi","Türkiye'nin İşlevsel Bölgeleri ve Kalkınma Projeleri","Kültür Bölgeleri","Küreselleşen Dünya","Hizmet Sektörünün Ekonomideki Yeri","Küresel Ticaret","Türkiye Turizmi","Küresel Ortam: Bölgeler ve Ülkeler","Jeopolitik Konum","Ülkeler Arası Etkileşim","Çevre ve Toplum","Çevre Sorunları","Çevre Sorunlarının Çözümüne Yönelik Yaklaşımlar"],"AYT Tarih":["Tarih ve Zaman","İnsanlığın İlk Dönemleri","İlk ve Orta Çağlarda Türk Dünyası","İslam Medeniyetinin Doğuşu ve İlk İslam Devletleri","Türklerin İslamiyet'i Kabulü ve İlk Türk İslam Devletleri","Orta Çağ'da Dünya","Yerleşme ve Devletleşme Sürecinde Selçuklu Türkiyesi","Beylikten Devlete Osmanlı Siyaseti","Devletleşme Sürecinde Savaşçılar ve Askerler","Beylikten Devlete Osmanlı Medeniyeti","Dünya Gücü Osmanlı","Sultan ve Osmanlı Merkez Teşkilatı","Klasik Çağda Osmanlı Toplum Düzeni","Değişen Dünya Dengeleri Karşısında Osmanlı Siyaseti","Değişim Çağında Avrupa ve Osmanlı","Uluslararası İlişkilerde Denge Stratejisi (1774-1914)","Devrimler Çağında Değişen Devlet-Toplum İlişkileri","Sermaye ve Emek","19. ve 20. Yüzyılda Değişen Gündelik Hayat","20. Yüzyıl Başlarında Osmanlı Devleti ve Dünya","Milli Mücadele","Atatürkçülük ve Türk İnkılabı","İki Savaş Arasındaki Dönemde Türkiye ve Dünya","2. Dünya Savaşı Sürecinde Türkiye ve Dünya","2. Dünya Savaşı Sonrasında Türkiye ve Dünya","Toplumsal Devrim Çağında Dünya ve Türkiye","21. Yüzyılın Eşiğinde Türkiye ve Dünya"],"AYT Fizik":["Vektörler","Kuvvet, Tork ve Denge","Kütle Merkezi","Basit Makineler","Hareket","Newton'un Hareket Yasaları","İş, Güç ve Enerji II","Atışlar","İtme ve Momentum","Elektrik Alan ve Potansiyel","Paralel Levhalar ve Sığa","Manyetik Alan ve Manyetik Kuvvet","İndüksiyon, Alternatif Akım ve Transformatörler","Çembersel Hareket","Dönme, Yuvarlanma ve Açısal Momentum","Kütle Çekim ve Kepler Yasaları","Basit Harmonik Hareket","Dalga Mekaniği","Atom Fiziğine Giriş ve Radyoaktivite","Modern Fizik","Modern Fiziğin Teknolojideki Uygulamaları"],"AYT Kimya":["Kimya Bilimi","Atom ve Periyodik Sistem","Kimyasal Türler Arası Etkileşimler","Kimyasal Hesaplamalar","Kimyanın Temel Kanunları","Asit, Baz ve Tuz","Maddenin Halleri","Karışımlar","Kimya Her Yerde","Modern Atom Teorisi","Gazlar","Sıvı Çözeltiler ve Çözünürlük","Kimyasal Tepkimelerde Enerji","Kimyasal Tepkimelerde Hız","Kimyasal Tepkimelerde Denge","Asit-Baz Dengesi","Çözünürlük Dengesi","Kimya ve Elektrik","Karbon Kimyasına Giriş","Organik Kimya"],"AYT Biyoloji":["Sinir Sistemi","Endokrin Sistem","Duyu Organları","Destek ve Hareket Sistemi","Sindirim Sistemi","Dolaşım ve Bağışıklık Sistemi","Solunum Sistemi","Üriner Sistem (Boşaltım Sistemi)","Üreme Sistemi ve Embriyonik Gelişim","Komünite Ekolojisi","Popülasyon Ekolojisi","Genden Proteine","Nükleik Asitler","Genetik Şifre ve Protein Sentezi","Canlılarda Enerji Dönüşümleri","Fotosentez","Kemosentez","Hücresel Solunum","Bitki Biyolojisi","Canlılar ve Çevre","Enerji Kaynakları ve Bilimsel Gelişmeler"],"AYT Felsefe Grubu":["Felsefenin Konusu","Bilgi Felsefesi","Varlık Felsefesi","Ahlak Felsefesi","Sanat Felsefesi","Din Felsefesi","Siyaset Felsefesi","Bilim Felsefesi","İlk Çağ Felsefesi","MÖ 6.-MS 2. Yüzyıl Felsefesi","MS 2.-15. Yüzyıl Felsefesi","15.-17. Yüzyıl Felsefesi","18.-19. Yüzyıl Felsefesi","20. Yüzyıl Felsefesi","Mantığa Giriş","Klasik Mantık","Mantık ve Dil","Sembolik Mantık","Psikoloji Bilimini Tanıyalım","Psikolojinin Temel Süreçleri","Öğrenme, Bellek, Düşünme","Ruh Sağlığının Temelleri","Sosyolojiye Giriş","Birey ve Toplum","Toplumsal Yapı","Toplumsal Değişme ve Gelişme","Toplum ve Kültür","Toplumsal Kurumlar"],"AYT Din Kültürü":["Dünya ve Ahiret","Kur'an'a Göre Hz. Muhammed","Kur'an'da Bazı Kavramlar","İnançla İlgili Meseleler","Yahudilik ve Hristiyanlık","İslam ve Bilim","Anadolu'da İslam","İslam Düşüncesinde Tasavvufi Yorumlar","Güncel Dini Meseleler","Hint ve Çin Dinleri"]};
+  var ARA_SINIF_TOPICS = {"5":{"Türkçe":["Söz Varlığı","Okuduğunu Anlama","Cümle Bilgisi","Yazım Kuralları","Noktalama İşaretleri","Sözcük Türleri","Paragrafta Anlam","Dinleme/İzleme","Yazma Becerileri"],"Matematik":["Geometrik Şekiller","Sayılar ve Nicelikler - 1","Geometrik Nicelikler","Sayılar ve Nicelikler - 2","İstatistiksel Araştırma Süreci","İşlemlerle Cebirsel Düşünme","Veriden Olasılığa"],"Fen Bilimleri":["Gökyüzündeki Komşularımız ve Biz","Kuvveti Tanıyalım","Canlıların Yapısına Yolculuk","Işığın Dünyası","Maddenin Doğası","Yaşamımızdaki Elektrik","Sürdürülebilir Yaşam ve Geri Dönüşüm"],"Sosyal Bilgiler":["Birlikte Yaşamak","Evimiz Dünya","Ortak Mirasımız","İnsanlar Yerler ve Çevreler","Hayatımızdaki Ekonomi","Teknoloji ve Sosyal Bilimler","Etkin Vatandaşlık"],"İngilizce":["Hello!","My Town","Games and Hobbies","My Daily Routine","Health","Movies","Party Time","Fitness","The Animal Shelter","Festivals"],"Din Kültürü":["Allah İnancı","Namaz","Kur'an-ı Kerim","Peygamberimizi Tanıyorum","Temel Dini Bilgiler ve Ahlak"]},"6":{"Türkçe":["Dilimizin Zenginliği","Bağımsızlık Yolu","Farklı Dünyalar","İletişim ve Sosyal İlişkiler","Bilim ve Teknoloji"],"Matematik":["Bölünebilme ve Asal Çarpanlar","Ortak Kat ve Ortak Bölenler","Kesirlerle İşlemler","Ondalık Gösterim ve Yüzdeler","Cebirsel İfadeler","Açılar ve Üçgenler","Dörtgenler","Alan Ölçme Birimleri","Algoritmalar","Veri Analizi"],"Fen Bilimleri":["Güneş Sistemi ve Tutulmalar","Vücudumuzdaki Sistemler","Kuvvet ve Enerji","Madde ve Isı","Canlılarda Üreme Büyüme ve Gelişme","Elektriğin İletimi","Işık ve Ses"],"Sosyal Bilgiler":["Birlikte Yaşamak","Evimiz Dünya","Kültür ve Miras","İnsanlar Yerler ve Çevreler","Üretim Dağıtım ve Tüketim","Etkin Vatandaşlık","Küresel Bağlantılar"],"İngilizce":["Life","Yummy Breakfast","Games and Hobbies","My Weekend","My Room","Let's Cook","Skills","Hobbies","The Animal Shelter","Festivals"],"Din Kültürü":["Allah İnancı","Kur'an-ı Kerim ve Özellikleri","Hz. Muhammed'in Hayatı","Din ve Ahlak","İbadetlerimiz"]},"7":{"Türkçe":["Erdemler","Millî Kültürümüz","Duygular","Doğa ve Evren","İletişim"],"Matematik":["Tam Sayılarla İşlemler","Rasyonel Sayılar","Cebirsel İfadeler ve Özdeşlikler","Oran ve Orantı","Doğrusal Denklemler","Açılar ve Çokgenler","Çember ve Daire","Veri Analizi ve Olasılık"],"Fen Bilimleri":["Güneş Sistemi ve Ötesi","Hücre ve Bölünmeler","Kuvvet ve Enerji","Saf Madde ve Karışımlar","Işığın Madde ile Etkileşimi","Elektrik Devreleri","İnsan ve Çevre"],"Sosyal Bilgiler":["Birey ve Toplum","Kültür ve Miras","İnsanlar Yerler ve Çevreler","Bilim Teknoloji ve Toplum","Üretim Dağıtım ve Tüketim","Etkin Vatandaşlık","Küresel Bağlantılar"],"İngilizce":["Appearance and Personality","Sports","Biographies","Wild Animals","Television","Films","Illnesses and Health","Communication","The Media"],"Din Kültürü":["Bilgi ve İnanç","Ahlaki Davranışlar","Din ve Hayat","Hz. Muhammed ve Gençlik","Kur'an-ı Kerim'i Tanıyorum"]},"9":{"Türk Dili ve Edebiyatı":["Türkçenin Anlam ve Söz Varlığı","Cümle Bilgisi","Hikâye İncelemesi","Şiir İncelemesi","Deneme ve Fıkra","Sözlü ve Yazılı Anlatım","Divan ve Halk Edebiyatına Giriş"],"Matematik":["Kümeler","Sayılar","Denklemler ve Eşitsizlikler","Üslü ve Köklü İfadeler","Oran Orantı","Fonksiyonlara Giriş","Veri ve Olasılık"],"Fizik":["Fizik Bilimine Giriş","Madde ve Özellikleri","Hareket ve Kuvvet","İş, Güç ve Enerji","Isı ve Sıcaklık","Elektrostatik"],"Kimya":["Kimya Bilimi","Atom ve Periyodik Sistem","Kimyasal Türler Arası Etkileşimler","Maddenin Halleri","Doğa ve Kimya"],"Biyoloji":["Yaşam Bilimi Biyoloji","Hücre","Canlılar Dünyası","Üreme","Ekosistem Ekolojisi"],"Tarih":["Tarih Bilimine Giriş","İlk Çağ Uygarlıkları","Orta Çağ'da Dünya","İlk Türk Devletleri","Türk-İslam Devletleri"],"Coğrafya":["Doğa ve İnsan","Dünya'nın Şekli ve Hareketleri","Harita Bilgisi","İklim Bilgisi","Yer Şekilleri","Nüfus ve Yerleşme"],"Din Kültürü":["Bilgi ve İnanç","İslam ve İbadet","Gençlik ve Değerler","İslam Medeniyeti"],"İngilizce":["My Life","Friendship","Movies","Dreams","Occupations","The Internet"]},"10":{"Türk Dili ve Edebiyatı":["Anlatım Biçimleri","Şiir Bilgisi","Roman İncelemesi","Tiyatro","Divan Edebiyatı"],"Matematik":["Fonksiyonlar","Denklem ve Eşitsizlik Sistemleri","Üçgenler","Çokgenler ve Dörtgenler","Olasılık","Trigonometriye Giriş"],"Fizik":["Elektrik ve Manyetizma","Dalgalar","Optik","Basınç ve Kaldırma Kuvveti"],"Kimya":["Kimyasal Hesaplamalar","Karışımlar","Asit, Baz ve Tuz","Kimya Her Yerde"],"Biyoloji":["Kalıtım","Hücre Bölünmeleri","Sistemler (Sindirim, Dolaşım, Solunum)","Bitki Biyolojisi"],"Tarih":["Beylikten Devlete Osmanlı Siyaseti","Devletleşme Sürecinde Savaşçılar ve Askerler","Klasik Çağda Osmanlı Toplum Düzeni","Değişen Dünya Dengeleri Karşısında Osmanlı Siyaseti"],"Coğrafya":["Türkiye'nin Yer Şekilleri","Su ve Toprak","Nüfus ve Göç","Ekonomik Faaliyetler"],"Din Kültürü":["Allah İnancı ve İnsan","Kur'an-ı Kerim'de Gençler","Din ve Aile"],"İngilizce":["School Life","Technology","Cooperation","Travel and Tourism","Human Rights"]},"11":{"Türk Dili ve Edebiyatı":["Tanzimat Edebiyatı","Servet-i Fünun Edebiyatı","Fecr-i Ati Edebiyatı","Milli Edebiyat","Cumhuriyet Dönemi Şiiri"],"Matematik":["Trigonometri","Analitik Geometri","Fonksiyonlarda Uygulamalar","Diziler","Limit ve Türeve Giriş"],"Fizik":["Kuvvet ve Hareket","İtme ve Momentum","Elektrik Alan ve Potansiyel","Manyetik Alan","Çembersel Hareket"],"Kimya":["Gazlar","Kimyasal Tepkimelerde Hız","Kimyasal Tepkimelerde Denge","Asit-Baz Dengesi","Karbon Kimyasına Giriş"],"Biyoloji":["Sinir Sistemi","Endokrin Sistem","Duyu Organları","Üreme Sistemi ve Embriyonik Gelişim","Ekoloji"],"Tarih":["Değişim Çağında Avrupa ve Osmanlı","Uluslararası İlişkilerde Denge Stratejisi","Devrimler Çağında Değişen Devlet-Toplum İlişkileri","Milli Mücadele"],"Coğrafya":["Ekosistem ve Biyoçeşitlilik","Nüfus Politikaları","Türkiye Ekonomisi","Küresel Ortam"],"Felsefe":["Felsefeye Giriş","Bilgi Felsefesi","Varlık Felsefesi","Ahlak Felsefesi"],"İngilizce":["Global Problems","Relationships","Emergency","Innovation","Alternative Energy"]}};
+  var RESOURCE_COLS = 4;
+  var TOPIC_RESOURCE_SUBJECTS = {
+    "Türkçe": ["Sözcükte Anlam","Cümlede Anlam","Cümle Çeşitleri","Yazım Kuralları","Paragraf","Fiilimsiler","Cümlenin Öğeleri","Fiil Çatısı","Noktalama İşaretleri","Anlatım Bozuklukları","Sadece Paragraf Kitapları"],
+    "Matematik": ["Çarpanlar ve Katlar","Üslü Sayılar","Köklü Sayılar","Olasılık","Veri Analizi","Cebirsel İfadeler ve Özdeşlikler","Doğrusal Denklemler","Eşitsizlikler","Üçgenler","Eşlik ve Benzerlik","Dönüşüm Geometrisi","Geometrik Cisimler"],
+    "Fen Bilimleri": ["Mevsimler ve İklim","DNA ve Genetik Kod","Basınç","Madde ve Endüstri","Basit Makineler","Enerji Dönüşümleri ve Çevre Bilimi","Elektrik Enerjisi"],
+    "İnkılap Tarihi": ["Bir Kahraman Doğuyor","Milli Uyanış Bağımsızlık Yolunda","Milli Bir Destan Ya İstiklal Ya Ölüm","Atatürkçülük ve Çağdaşlaşan Türkiye","Demokratikleşme Çabaları","Atatürk Dönemi Türk Dış Politikası","Atatürk'ün Ölümü ve Sonrası"],
+    "Din Kültürü": ["Kader İnancı","Zekat ve Sadaka","Din ve Hayat","Hz. Muhammed'in Örnekliği","Kur'an-ı Kerim ve Özellikleri"],
+    "İngilizce": ["Friendship","Teen Life","In The Kitchen","On The Phone","The Internet","Adventures","Tourism","Chores","Science","Natural Forces"]
+  };
+  function slug(s) {
+    var map = {"ç":"c","Ç":"c","ğ":"g","Ğ":"g","ı":"i","İ":"i","ö":"o","Ö":"o","ş":"s","Ş":"s","ü":"u","Ü":"u"};
+    var out = String(s).split("").map(function (ch) { return map[ch] || ch; }).join("");
+    out = out.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    return out || "x";
+  }
+  function currentStudentLevel() {
+    var code = state.studentCode;
+    var rec = code ? state.students[code] : null;
+    return (rec && rec.level) || null;
+  }
+  function currentStudentGrade() {
+    var code = state.studentCode;
+    var rec = code ? state.students[code] : null;
+    return (rec && rec.grade) || null;
+  }
+  function currentCoachName() {
+    var code = state.coachCode;
+    var rec = code ? state.coaches[code] : null;
+    return rec ? rec.name : null;
+  }
+  function subjectsFor(level, grade) {
+    if (level === "yks") return YKS_TOPICS;
+    if (level === "ara") return ARA_SINIF_TOPICS[grade] || {};
+    return LGS_TOPICS;
+  }
+  function dropdownSubjects(level, grade) { return subjectsFor(level, grade); }
+  function resourceSubjects(level, grade) { return level === "yks" ? YKS_TOPICS : level === "ara" ? (ARA_SINIF_TOPICS[grade] || {}) : TOPIC_RESOURCE_SUBJECTS; }
+  var ARA_GRADES = ["5", "6", "7", "9", "10", "11"];
+  function levelLabelFor(level, grade) {
+    if (level === "yks") return "YKS (TYT-AYT)";
+    if (level === "ara") return "Ara Sınıf (" + (grade || "?") + ". Sınıf)";
+    return "LGS";
+  }
+ 
+  var LOGO_URI = "data:image/png;base64,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";
+  var STUDENT_CODE_KEY = "gunluk_ogrenci_kodu";
+  var COACH_CODE_KEY = "gunluk_koc_kodu";
+  var CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I to avoid confusion
+  var state = {
+    view: localStorage.getItem("gunluk_view") || "home", // home | features | contact | splash | student | coach
+    studentCode: localStorage.getItem(STUDENT_CODE_KEY) || "",
+    students: {},        // code -> {name, code, createdAt}
+    studentsLoaded: false,
+    forceLevelPicker: false,
+    levelPickerGradeStep: false,
+    coachCode: localStorage.getItem(COACH_CODE_KEY) || "",
+    coaches: {},          // code -> {name, code, createdAt}
+    coachesLoaded: false,
+    dbReady: false,
+    dbAvailable: null, // null = unknown, false = unavailable
+    entries: [],       // from db
+    messages: [],       // from db
+    resourceNames: {}, // subject -> [name x4]
+    topicProgress: {}, // studentSlug -> {student, subjects:{subject:{topic:[bool x4]}}}
+    studentTab: "log", // log | topics | messages | pomodoro
+    coachTab: "feed",  // feed | topics | messages | students
+    coachTopicsStudent: "",
+    coachDate: todayStr(),
+    coachStudentFilter: "__all__",
+    saving: false,
+    saveMsg: null, // {type, text}
+    stopwatch: { running: false, startedAt: null, accumulatedSec: 0, subject: "" },
+    weeklyQuestions: {},   // docId -> {student, weekStart, bySubject, updatedAt}
+    studentWeekOffset: 0,  // 0 = this week, -1 = last week...
+    coachWeekOffset: 0,
+  };
+ 
+  var db = null;
+ 
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function fmtDuration(min) {
+    if (min == null || isNaN(min)) return "";
+    min = Math.round(min);
+    var h = Math.floor(min / 60), m = min % 60;
+    if (h && m) return h + " sa " + m + " dk";
+    if (h) return h + " sa";
+    return m + " dk";
+  }
+  function fmtNum(n) {
+    if (n == null || isNaN(n)) return "";
+    return (n % 1 === 0) ? String(n) : String(Math.round(n * 100) / 100);
+  }
+  function fmtTime(ms) {
+    var d = new Date(ms);
+    return pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+  function currentStudentName() {
+    var code = state.studentCode;
+    if (!code) return null;
+    var rec = state.students[code];
+    return rec ? rec.name : null;
+  }
+  function generateCode(existingMap) {
+    var existing = existingMap || state.students;
+    var code;
+    do {
+      code = "";
+      for (var i = 0; i < 6; i++) code += CODE_CHARS.charAt(Math.floor(Math.random() * CODE_CHARS.length));
+    } while (existing[code]);
+    return code;
+  }
+  function fmtDateLabel(dateStr) {
+    var parts = dateStr.split("-");
+    var months = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+    return parseInt(parts[2],10) + " " + months[parseInt(parts[1],10)-1] + " " + parts[0];
+  }
+  var MONTHS_SHORT = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+  function toDateStr(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function mondayOf(d) {
+    var day = d.getDay(); // 0=Sun..6=Sat
+    var diff = (day === 0 ? -6 : 1 - day);
+    var m = new Date(d);
+    m.setHours(0, 0, 0, 0);
+    m.setDate(m.getDate() + diff);
+    return m;
+  }
+  function weekStartForOffset(offset) {
+    var base = new Date();
+    var monday = mondayOf(base);
+    monday.setDate(monday.getDate() + offset * 7);
+    return toDateStr(monday);
+  }
+  function weekRangeLabel(weekStartStr) {
+    var parts = weekStartStr.split("-").map(Number);
+    var start = new Date(parts[0], parts[1] - 1, parts[2]);
+    var end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    var sameMonth = start.getMonth() === end.getMonth();
+    var startLabel = start.getDate() + (sameMonth ? "" : " " + MONTHS_SHORT[start.getMonth()]);
+    var endLabel = end.getDate() + " " + MONTHS_SHORT[end.getMonth()] + " " + end.getFullYear();
+    return startLabel + " - " + endLabel;
+  }
+  function esc(s) {
+    var d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+ 
+  function setView(v) {
+    state.view = v;
+    localStorage.setItem("gunluk_view", v);
+    render();
+  }
+ 
+  // ---------- DB wiring (Firebase) ----------
+  var unsubscribeEntries = null;
+ 
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCxC6hxmfNWduyvEVM4gT3b2Tyl63UtLs8",
+    authDomain: "rehbermetre-51d2a.firebaseapp.com",
+    projectId: "rehbermetre-51d2a",
+    storageBucket: "rehbermetre-51d2a.firebasestorage.app",
+    messagingSenderId: "377992992512",
+    appId: "1:377992992512:web:2c8b3acb6e7c15451e85e5"
+  };
+ 
+  async function initDb() {
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      await firebase.auth().signInAnonymously();
+      db = firebase.firestore();
+    } catch (e) {
+      db = null;
+    }
+    state.dbAvailable = !!db;
+    if (!db) {
+      state.studentsLoaded = true;
+      state.coachesLoaded = true;
+    }
+    render();
+    if (db) subscribeEntries();
+  }
+ 
+  function subscribeEntries() {
+    if (!db) return;
+    try {
+      db.doc("resourceNames/main").onSnapshot(function (snap) {
+        state.resourceNames = snap.exists ? (snap.data() || {}) : {};
+        render();
+      }, function () {});
+ 
+      db.collection("students").onSnapshot(function (snap) {
+        var map = {};
+        snap.docs.forEach(function (d) { map[d.id] = d.data() || {}; });
+        state.students = map;
+        state.studentsLoaded = true;
+        render();
+      }, function () { state.studentsLoaded = true; render(); });
+ 
+      db.collection("coaches").onSnapshot(function (snap) {
+        var map = {};
+        snap.docs.forEach(function (d) { map[d.id] = d.data() || {}; });
+        state.coaches = map;
+        state.coachesLoaded = true;
+        render();
+      }, function () { state.coachesLoaded = true; render(); });
+ 
+      db.collection("topicProgress").onSnapshot(function (snap) {
+        var map = {};
+        snap.docs.forEach(function (d) { map[d.id] = d.data() || {}; });
+        state.topicProgress = map;
+        render();
+      }, function () {});
+ 
+      db.collection("messages").orderBy("createdAt", "desc").limit(200).onSnapshot(function (snap) {
+        state.messages = snap.docs.map(function (d) {
+          var data = d.data() || {};
+          return { id: d.id, student: data.student || "İsimsiz", text: data.text || "", createdAt: data.createdAt || 0 };
+        });
+        render();
+      }, function () {});
+ 
+      db.collection("weeklyQuestions").onSnapshot(function (snap) {
+        var map = {};
+        snap.docs.forEach(function (d) { map[d.id] = d.data() || {}; });
+        state.weeklyQuestions = map;
+        render();
+      }, function () {});
+ 
+      unsubscribeEntries = db.collection("entries")
+        .orderBy("createdAt", "desc")
+        .limit(300)
+        .onSnapshot(
+          function (snap) {
+            state.entries = snap.docs.map(function (d) {
+              var data = d.data() || {};
+              return {
+                id: d.id,
+                student: data.student || "İsimsiz",
+                subject: data.subject || "",
+                topic: data.topic || "",
+                note: data.note || "",
+                questionCount: (data.questionCount === undefined ? null : data.questionCount),
+                durationMinutes: (data.durationMinutes === undefined ? null : data.durationMinutes),
+                score: (data.score === undefined ? null : data.score),
+                date: data.date || "",
+                createdAt: data.createdAt || 0
+              };
+            });
+            render();
+          },
+          function (err) {
+            state.dbAvailable = false;
+            render();
+          }
+        );
+    } catch (e) {
+      state.dbAvailable = false;
+      render();
+    }
+  }
+ 
+  async function addEntry(entry) {
+    if (!db) return { ok: false, error: "Depolama şu anda kullanılamıyor." };
+    try {
+      await db.collection("entries").add({
+        student: entry.student,
+        subject: entry.subject,
+        topic: entry.topic,
+        note: entry.note,
+        questionCount: entry.questionCount,
+        durationMinutes: entry.durationMinutes,
+        score: entry.score,
+        date: entry.date,
+        createdAt: Date.now()
+      });
+      return { ok: true };
+    } catch (e) {
+      var msg = "Kaydedilemedi, tekrar dener misin?";
+      if (e && e.code === "quota_exceeded") msg = "Günlük dolu, koçunla iletişime geç.";
+      return { ok: false, error: msg };
+    }
+  }
+ 
+  async function saveResourceNames(subject, names) {
+    if (!db) return;
+    var body = Object.assign({}, state.resourceNames);
+    body[subject] = names;
+    state.resourceNames = body;
+    try { await db.doc("resourceNames/main").set(body); } catch (e) {}
+  }
+ 
+  async function toggleTopicMark(studentName, subject, topic, resIdx, checked) {
+    if (!db || !studentName) return;
+    var sId = slug(studentName);
+    var current = state.topicProgress[sId] || { student: studentName, subjects: {} };
+    var subjObj = Object.assign({}, current.subjects);
+    var topicMap = Object.assign({}, subjObj[subject]);
+    var arr = (topicMap[topic] || [false, false, false, false]).slice();
+    arr[resIdx] = checked;
+    topicMap[topic] = arr;
+    subjObj[subject] = topicMap;
+    var body = { student: studentName, subjects: subjObj };
+    state.topicProgress[sId] = body;
+    try { await db.collection("topicProgress").doc(sId).set(body); } catch (e) {}
+  }
+ 
+  async function sendMessage(studentName, text) {
+    if (!db) return { ok: false, error: "Şu anda gönderilemiyor." };
+    try {
+      await db.collection("messages").add({ student: studentName, text: text, createdAt: Date.now() });
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: "Gönderilemedi, tekrar dener misin?" };
+    }
+  }
+ 
+  async function saveWeeklyQuestions(studentName, weekStart, bySubject) {
+    if (!db || !studentName) return { ok: false, error: "Şu anda kaydedilemiyor." };
+    var docId = slug(studentName) + "_" + weekStart;
+    var body = { student: studentName, weekStart: weekStart, bySubject: bySubject, updatedAt: Date.now() };
+    try {
+      await db.collection("weeklyQuestions").doc(docId).set(body);
+      state.weeklyQuestions[docId] = body;
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: "Kaydedilemedi, tekrar dener misin?" };
+    }
+  }
+ 
+  async function addStudent(name) {
+    if (!db || !name) return { ok: false, error: "Şu anda kaydedilemiyor." };
+    var code = generateCode();
+    try {
+      await db.collection("students").doc(code).set({ name: name, code: code, createdAt: Date.now(), coachCode: state.coachCode });
+      return { ok: true, code: code };
+    } catch (e) {
+      return { ok: false, error: "Öğrenci eklenemedi, tekrar dener misin?" };
+    }
+  }
+ 
+  async function removeStudent(code) {
+    if (!db) return;
+    try { await db.collection("students").doc(code).delete(); } catch (e) {}
+  }
+ 
+  async function addCoach(name, role) {
+    if (!db || !name) return { ok: false, error: "Şu anda kaydedilemiyor." };
+    var code = generateCode(state.coaches);
+    try {
+      await db.collection("coaches").doc(code).set({ name: name, code: code, createdAt: Date.now(), role: role || "coach" });
+      return { ok: true, code: code };
+    } catch (e) {
+      return { ok: false, error: "Koç eklenemedi, tekrar dener misin?" };
+    }
+  }
+ 
+  async function removeCoach(code) {
+    if (!db) return;
+    try { await db.collection("coaches").doc(code).delete(); } catch (e) {}
+  }
+ 
+  function isOwnerCoach() {
+    var rec = state.coaches[state.coachCode];
+    return !!(rec && rec.role === "owner");
+  }
+  function visibleStudentCodes() {
+    if (isOwnerCoach()) return Object.keys(state.students);
+    return Object.keys(state.students).filter(function (c) { return state.students[c].coachCode === state.coachCode; });
+  }
+  function visibleStudentNameSet() {
+    var set = {};
+    visibleStudentCodes().forEach(function (c) { set[state.students[c].name] = true; });
+    return set;
+  }
+ 
+  var swTickerInterval = null;
+  function stopwatchElapsedSec() {
+    var s = state.stopwatch;
+    var extra = (s.running && s.startedAt) ? (Date.now() - s.startedAt) / 1000 : 0;
+    return Math.max(0, Math.round(s.accumulatedSec + extra));
+  }
+  function ensureStopwatchTicker() {
+    if (swTickerInterval) return;
+    swTickerInterval = setInterval(function () {
+      if (state.view === "student" && state.studentTab === "pomodoro" && state.stopwatch.running) {
+        render();
+      }
+    }, 1000);
+  }
+  function startStopwatch() {
+    var s = state.stopwatch;
+    s.running = true;
+    s.startedAt = Date.now();
+    ensureStopwatchTicker();
+    render();
+  }
+  function pauseStopwatch() {
+    var s = state.stopwatch;
+    s.accumulatedSec = stopwatchElapsedSec();
+    s.running = false;
+    s.startedAt = null;
+    render();
+  }
+  function resetStopwatch() {
+    var s = state.stopwatch;
+    s.running = false;
+    s.startedAt = null;
+    s.accumulatedSec = 0;
+    render();
+  }
+ 
+  async function setStudentLevel(code, level, grade) {
+    if (!db || !code) return;
+    var rec = state.students[code] || {};
+    var body = { name: rec.name, code: code, createdAt: rec.createdAt || Date.now(), level: level, grade: grade || null };
+    state.students[code] = body;
+    try { await db.collection("students").doc(code).set(body); } catch (e) {}
+  }
+ 
+  // ---------- Rendering ----------
+  function render() {
+    var app = document.getElementById("app");
+    if (state.view === "student") {
+      app.innerHTML = renderStudent();
+      wireStudent();
+    } else if (state.view === "coach") {
+      app.innerHTML = renderCoach();
+      wireCoach();
+    } else if (state.view === "contact") {
+      app.innerHTML = renderSiteNav("contact") + renderContact();
+      wireSiteNav();
+    } else if (state.view === "splash") {
+      app.innerHTML = renderSiteNav("splash") + renderSplash();
+      wireSiteNav();
+      wireSplash();
+    } else {
+      app.innerHTML = renderSiteNav("home") + renderHome();
+      wireSiteNav();
+    }
+  }
+ 
+  function offlineBanner() {
+    if (state.dbAvailable === false) {
+      return '<div class="offline-banner">Bu görünümde canlı depolama şu anda erişilemiyor. Sayfayı yeniden açmayı deneyebilirsin; kayıtların görünmeyebilir.</div>';
+    }
+    return "";
+  }
+ 
+  function renderSiteNav(active) {
+    var items = [
+      ["home", "Ana Sayfa"],
+      ["contact", "İletişim"],
+      ["splash", "Giriş"]
+    ];
+    return '' +
+      '<div class="site-nav">' +
+        '<button class="site-brand" data-nav="home"><img src="' + LOGO_URI + '" alt="" /><span>RehberMetre</span></button>' +
+        '<div class="site-nav-links">' +
+          items.map(function (it) {
+            return '<button class="site-nav-btn' + (active === it[0] ? " active" : "") + '" data-nav="' + it[0] + '">' + it[1] + '</button>';
+          }).join("") +
+        '</div>' +
+      '</div>';
+  }
+ 
+  function wireSiteNav() {
+    document.querySelectorAll("[data-nav]").forEach(function (btn) {
+      btn.addEventListener("click", function () { setView(btn.getAttribute("data-nav")); });
+    });
+  }
+ 
+  function renderHome() {
+    return '' +
+      '<div class="splash" style="min-height:auto;padding:24px 0 8px;">' +
+        '<div style="text-align:center;">' +
+          '<div class="brand-tagline" style="text-transform:uppercase;">eğitimde başarının ölçüsü</div>' +
+          '<h1 style="margin-top:10px;">Bugün ne çalıştın?</h1>' +
+          '<p class="lede" style="margin-left:auto;margin-right:auto;">Öğrenciler her ders sonunda ne üzerinde çalıştıklarını buraya yazar, koç anında görür. Kimseyi beklemeye gerek yok.</p>' +
+          '<button class="hero-cta" data-nav="splash">Giriş yap →</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="feature-grid" style="margin-top:36px;">' +
+        '<div class="feature-card"><h3>Günlük Kayıt</h3><p>Öğrenci her gün hangi derste ne çalıştığını, soru sayısını ve süresini kaydeder.</p></div>' +
+        '<div class="feature-card"><h3>Konu Takibi</h3><p>LGS ya da YKS (TYT-AYT) — seviyeye göre gerçek müfredat konuları ve kaynak takibi.</p></div>' +
+        '<div class="feature-card"><h3>Zaman Sayacı</h3><p>Öğrenci çalışırken sayacı başlatır, bitirince süreyi tek tıkla günlüğe ekler.</p></div>' +
+        '<div class="feature-card"><h3>Koç Paneli</h3><p>Tüm öğrencilerin kayıtları, mesajları ve konu ilerlemesi anlık ve tek ekranda.</p></div>' +
+      '</div>';
+  }
+ 
+  function renderContact() {
+    return '' +
+      '<h1 style="margin-bottom:6px;">İletişim</h1>' +
+      '<p class="lede" style="margin-bottom:24px;">Sorularınız için bize ulaşabilirsiniz.</p>' +
+      '<div class="card">' +
+        '<div style="font-size:14px;line-height:1.9;color:var(--ink-soft);">' +
+          '<div><strong style="color:var(--ink);">E-posta:</strong> [e-posta adresinizi buraya ekleyin]</div>' +
+          '<div><strong style="color:var(--ink);">Telefon:</strong> [telefon numaranızı buraya ekleyin]</div>' +
+        '</div>' +
+      '</div>';
+  }
+ 
+  function renderSplash() {
+    return '' +
+      '<div class="splash" style="min-height:auto;padding:24px 0 8px;">' +
+        '<h1>Giriş yap</h1>' +
+        '<p class="lede">Öğrenci misin, koç musun?</p>' +
+        '<div class="role-row">' +
+          '<div class="role-card" data-role="student">' +
+            '<h3>Öğrenciyim</h3>' +
+            '<p>Bugün işlediğin konuları kaydet.</p>' +
+            '<span class="arrow">Girişe geç →</span>' +
+          '</div>' +
+          '<div class="role-card" data-role="coach">' +
+            '<h3>Koçum</h3>' +
+            '<p>Tüm öğrencilerin girdiği kayıtları anlık izle.</p>' +
+            '<span class="arrow">Panele geç →</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+ 
+  function wireSplash() {
+    var cards = document.querySelectorAll(".role-card");
+    cards.forEach(function (c) {
+      c.addEventListener("click", function () {
+        setView(c.getAttribute("data-role"));
+      });
+    });
+  }
+ 
+  function renderStudent() {
+    var name = currentStudentName();
+ 
+    if (!name) {
+      return renderStudentLogin();
+    }
+ 
+    var level = currentStudentLevel();
+    if (!level || state.forceLevelPicker) {
+      return renderLevelPicker(name);
+    }
+ 
+    var levelLabel = levelLabelFor(level, currentStudentGrade());
+    return '' +
+      '<div class="brand-mini"><img src="' + LOGO_URI + '" alt="" style="width:18px;height:auto;vertical-align:-4px;margin-right:6px;" /><strong>RehberMetre</strong><span>eğitimde başarının ölçüsü</span></div>' +
+      '<div class="topbar">' +
+        '<div><button class="back-link" id="back-splash">← Geri</button><h1 style="margin-top:6px;">Merhaba, ' + esc(name) + '</h1></div>' +
+        '<div class="who">' + esc(levelLabel) + ' · <button class="back-link" id="change-level-btn">değiştir</button> · <button class="back-link" id="logout-btn">çıkış yap</button></div>' +
+      '</div>' +
+      offlineBanner() +
+      '<div class="tab-row">' +
+        '<button class="tab-btn' + (state.studentTab === "log" ? " active" : "") + '" data-tab="log">Günlük Kayıt</button>' +
+        '<button class="tab-btn' + (state.studentTab === "topics" ? " active" : "") + '" data-tab="topics">Konu Takibi</button>' +
+        '<button class="tab-btn' + (state.studentTab === "weekly" ? " active" : "") + '" data-tab="weekly">Haftalık Soru</button>' +
+        '<button class="tab-btn' + (state.studentTab === "messages" ? " active" : "") + '" data-tab="messages">Mesajlar</button>' +
+        '<button class="tab-btn' + (state.studentTab === "pomodoro" ? " active" : "") + '" data-tab="pomodoro">Zaman Sayacı</button>' +
+      '</div>' +
+      (state.studentTab === "topics" ? renderStudentTopics(name) :
+       state.studentTab === "weekly" ? renderStudentWeekly(name) :
+       state.studentTab === "messages" ? renderStudentMessages(name) :
+       state.studentTab === "pomodoro" ? renderStudentStopwatch(name) :
+       renderStudentLog(name));
+  }
+ 
+  function renderLevelPicker(name) {
+    var body;
+    if (state.levelPickerGradeStep) {
+      body = '' +
+        '<div class="card">' +
+          '<label style="margin-bottom:12px;"><button class="back-link" id="grade-step-back" style="margin-right:8px;">← geri</button>Kaçıncı sınıftasın?</label>' +
+          '<div class="role-row" style="flex-wrap:wrap;">' +
+            ARA_GRADES.map(function (g) {
+              return '<div class="role-card" data-grade="' + g + '" style="flex:1 1 120px;"><h3>' + g + '. Sınıf</h3></div>';
+            }).join("") +
+          '</div>' +
+        '</div>';
+    } else {
+      body = '' +
+        '<div class="card">' +
+          '<label style="margin-bottom:12px;">Hangi sınava hazırlanıyorsun?</label>' +
+          '<div class="role-row">' +
+            '<div class="role-card" data-level="lgs"><h3>LGS</h3><p>Ortaokul — LGS konuları</p></div>' +
+            '<div class="role-card" data-level="yks"><h3>YKS</h3><p>Lise — TYT / AYT konuları</p></div>' +
+            '<div class="role-card" data-level="ara"><h3>Ara Sınıf</h3><p>5, 6, 7, 9, 10, 11. sınıf — güncel MEB konuları</p></div>' +
+          '</div>' +
+        '</div>';
+    }
+    return '' +
+      '<div class="brand-mini"><img src="' + LOGO_URI + '" alt="" style="width:18px;height:auto;vertical-align:-4px;margin-right:6px;" /><strong>RehberMetre</strong><span>eğitimde başarının ölçüsü</span></div>' +
+      '<div class="topbar">' +
+        '<div><h1 style="margin-top:6px;">Merhaba, ' + esc(name) + '</h1></div>' +
+        '<div class="who"><button class="back-link" id="logout-btn">çıkış yap</button></div>' +
+      '</div>' +
+      body;
+  }
+ 
+  function renderStudentLogin() {
+    var invalidCode = state.studentCode && state.studentsLoaded && !state.students[state.studentCode];
+    var stillLoading = state.studentCode && !state.studentsLoaded;
+    return '' +
+      '<div class="brand-mini"><img src="' + LOGO_URI + '" alt="" style="width:18px;height:auto;vertical-align:-4px;margin-right:6px;" /><strong>RehberMetre</strong><span>eğitimde başarının ölçüsü</span></div>' +
+      '<div class="topbar">' +
+        '<div><button class="back-link" id="back-splash">← Geri</button><h1 style="margin-top:6px;">Öğrenci girişi</h1></div>' +
+      '</div>' +
+      offlineBanner() +
+      (stillLoading ? '<div class="empty">Kontrol ediliyor...</div>' : '' +
+        '<div class="card">' +
+          '<div class="field"><label for="login-code">Öğretmeninin sana verdiği kod</label><input id="login-code" type="text" maxlength="8" placeholder="örn. K3F9QZ" style="text-transform:uppercase;letter-spacing:.08em;font-size:18px;text-align:center;" /></div>' +
+          (invalidCode ? '<div class="status-line err">Bu kod tanınmıyor. Öğretmeninden kontrol etmesini iste.</div>' : '') +
+          '<div class="field" style="margin-top:16px;"><button class="btn" id="login-submit">Giriş yap</button><div class="status-line" id="login-status"></div></div>' +
+        '</div>');
+  }
+ 
+  function renderStudentLog(name) {
+    var myEntriesToday = state.entries.filter(function (e) {
+      return e.date === todayStr() && name && e.student === name;
+    });
+ 
+    var formBlock = '' +
+      '<div class="card">' +
+        '<div class="field-row">' +
+          '<div class="field"><label for="f-subject">Ders</label>' +
+            '<select id="f-subject">' +
+              '<option value="">Seç...</option>' +
+              Object.keys(dropdownSubjects(currentStudentLevel(), currentStudentGrade())).map(function (s) { return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join("") +
+              '<option value="' + OTHER_SUBJECT + '">Diğer (elle yaz)</option>' +
+            '</select>' +
+          '</div>' +
+          '<div class="field"><label for="f-topic">Konu</label>' +
+            '<select id="f-topic" disabled><option value="">Önce ders seç</option></select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="field" id="f-subject-custom-wrap" style="display:none;"><label for="f-subject-custom">Ders adı</label><input id="f-subject-custom" type="text" placeholder="örn. Beden Eğitimi" /></div>' +
+        '<div class="field" id="f-topic-custom-wrap" style="display:none;"><label for="f-topic-custom">Konu adı</label><input id="f-topic-custom" type="text" placeholder="örn. Kesirler" /></div>' +
+        '<div class="field"><label for="f-note">Ne yaptın?</label><textarea id="f-note" placeholder="Kısaca özetle: hangi soruları çözdün, neyi anlamadın..."></textarea></div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label for="f-questions">Soru Sayısı</label><input id="f-questions" type="number" min="0" step="1" placeholder="örn. 55" /></div>' +
+          '<div class="field"><label for="f-duration">Çalışma Süresi (dk)</label><input id="f-duration" type="number" min="0" step="5" placeholder="örn. 90" /></div>' +
+        '</div>' +
+        '<div class="field"><label for="f-score">Puan / Net <span style="opacity:.7;">(deneme yaptıysan)</span></label><input id="f-score" type="number" min="0" step="0.01" placeholder="örn. 85.5" /></div>' +
+        '<div class="field" style="margin-top:18px;">' +
+          '<button class="btn" id="submit-entry">Kaydet</button>' +
+          '<div class="status-line" id="status-line"></div>' +
+        '</div>' +
+      '</div>';
+ 
+    var listBlock = '';
+    if (name) {
+      var myTotalQ = myEntriesToday.reduce(function (s, e) { return s + (e.questionCount != null && !isNaN(e.questionCount) ? e.questionCount : 0); }, 0);
+      var myTotalMin = myEntriesToday.reduce(function (s, e) { return s + (e.durationMinutes != null && !isNaN(e.durationMinutes) ? e.durationMinutes : 0); }, 0);
+      var myTotalsBits = [];
+      if (myTotalQ > 0) myTotalsBits.push(fmtNum(myTotalQ) + ' soru');
+      if (myTotalMin > 0) myTotalsBits.push(fmtDuration(myTotalMin));
+      listBlock += '<div class="section-label">Bugün girdiklerin <span class="count">(' + myEntriesToday.length + ')</span>' + (myTotalsBits.length ? ' — ' + esc(myTotalsBits.join(' · ')) : '') + '</div>';
+      if (myEntriesToday.length === 0) {
+        listBlock += '<div class="empty">Henüz kayıt yok. Yukarıdan ilk konuyu ekle.</div>';
+      } else {
+        listBlock += myEntriesToday.map(renderEntryRow).join("");
+      }
+    }
+ 
+    return formBlock + listBlock;
+  }
+ 
+  function renderStudentTopics(name) {
+    if (!name) {
+      return '<div class="card"><p style="color:var(--ink-soft);font-size:14px;margin:0;">Konu takibini kullanmak için önce "Günlük Kayıt" sekmesinden adını gir.</p></div>';
+    }
+    var sId = slug(name);
+    var progress = (state.topicProgress[sId] && state.topicProgress[sId].subjects) || {};
+    var subjects = resourceSubjects(currentStudentLevel(), currentStudentGrade());
+    return Object.keys(subjects).map(function (subject) {
+      return renderTopicGrid(subject, subjects[subject], progress[subject] || {}, { readOnly: false });
+    }).join("");
+  }
+ 
+  function renderStudentWeekly(name) {
+    var weekStart = weekStartForOffset(state.studentWeekOffset);
+    var docId = slug(name) + "_" + weekStart;
+    var rec = state.weeklyQuestions[docId];
+    var bySubject = (rec && rec.bySubject) || {};
+    var subjects = Object.keys(dropdownSubjects(currentStudentLevel(), currentStudentGrade()));
+    var total = subjects.reduce(function (sum, s) { return sum + (Number(bySubject[s]) || 0); }, 0);
+ 
+    return '' +
+      '<div class="card">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;flex-wrap:wrap;">' +
+          '<button class="back-link" id="week-prev">← önceki hafta</button>' +
+          '<div style="font-family:var(--font-display);font-size:15px;text-align:center;">' + esc(weekRangeLabel(weekStart)) + (state.studentWeekOffset === 0 ? ' <span style="color:var(--moss-dim);font-size:12px;">(bu hafta)</span>' : '') + '</div>' +
+          '<button class="back-link" id="week-next"' + (state.studentWeekOffset >= 0 ? " disabled" : "") + '>sonraki hafta →</button>' +
+        '</div>' +
+        '<div class="weekly-grid">' +
+          subjects.map(function (s) {
+            return '<div class="weekly-row"><label>' + esc(s) + '</label><input type="number" min="0" step="1" class="weekly-input" data-subject="' + esc(s) + '" value="' + (bySubject[s] != null ? bySubject[s] : "") + '" placeholder="0" /></div>';
+          }).join("") +
+        '</div>' +
+        '<div style="margin-top:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">' +
+          '<button class="btn" id="weekly-save">Kaydet</button>' +
+          '<div style="font-size:13px;color:var(--ink-soft);">Bu haftaki toplam: <strong style="color:var(--ink);">' + total + '</strong> soru</div>' +
+        '</div>' +
+        '<div class="status-line" id="weekly-status"></div>' +
+      '</div>';
+  }
+ 
+  function renderStudentMessages(name) {
+    if (!name) {
+      return '<div class="card"><p style="color:var(--ink-soft);font-size:14px;margin:0;">Mesaj gönderebilmek için önce "Günlük Kayıt" sekmesinden adını gir.</p></div>';
+    }
+    var mine = state.messages.filter(function (m) { return m.student === name; });
+    var buttons = TEMPLATE_MESSAGES.map(function (t) {
+      return '<button class="btn btn-ghost msg-tpl-btn" data-text="' + esc(t) + '" style="display:block;width:100%;text-align:left;margin-bottom:8px;">' + esc(t) + '</button>';
+    }).join("");
+ 
+    return '' +
+      '<div class="card">' +
+        '<label style="margin-bottom:10px;">Öğretmenine hazır bir mesaj gönder</label>' +
+        buttons +
+        '<div class="status-line" id="msg-status-line"></div>' +
+      '</div>' +
+      '<div class="section-label">Gönderdiklerin <span class="count">(' + mine.length + ')</span></div>' +
+      (mine.length === 0
+        ? '<div class="empty">Henüz mesaj göndermedin.</div>'
+        : mine.map(function (m) {
+            return '<div class="entry"><div class="time">' + fmtTime(m.createdAt) + '</div><div class="body"><div class="note">' + esc(m.text) + '</div></div></div>';
+          }).join(""));
+  }
+ 
+  function renderStudentStopwatch(name) {
+    var subjects = Object.keys(dropdownSubjects(currentStudentLevel(), currentStudentGrade()));
+    var s = state.stopwatch;
+    var elapsed = stopwatchElapsedSec();
+    var hh = pad(Math.floor(elapsed / 3600)), mm = pad(Math.floor((elapsed % 3600) / 60)), ss = pad(elapsed % 60);
+    var hasTime = elapsed > 0;
+ 
+    return '' +
+      '<div class="card" style="text-align:center;">' +
+        '<div class="pomo-clock">' + hh + ':' + mm + ':' + ss + '</div>' +
+        '<div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
+          (s.running
+            ? '<button class="btn btn-ghost" id="sw-pause">Duraklat</button>'
+            : '<button class="btn" id="sw-start">' + (hasTime ? "Devam Et" : "Başlat") + '</button>') +
+          '<button class="btn btn-ghost" id="sw-reset"' + (hasTime || s.running ? "" : " disabled") + '>Sıfırla</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="field"><label for="sw-subject">Ders <span style="opacity:.7;">(kaydetmek için seç)</span></label>' +
+          '<select id="sw-subject">' +
+            '<option value="">Seç...</option>' +
+            subjects.map(function (sub) { return '<option value="' + esc(sub) + '"' + (s.subject === sub ? " selected" : "") + '>' + esc(sub) + '</option>'; }).join("") +
+          '</select>' +
+        '</div>' +
+        '<div class="field" style="margin-top:14px;"><button class="btn" id="sw-save"' + (hasTime ? "" : " disabled") + '>Günlüğe Kaydet</button><div class="status-line" id="sw-status"></div></div>' +
+      '</div>';
+  }
+ 
+  function renderTopicGrid(subject, topics, subjectProgress, opts) {
+    opts = opts || {};
+    var readOnly = !!opts.readOnly;
+    var names = (state.resourceNames[subject] || ["", "", "", ""]);
+    topics = topics || [];
+    var doneCount = 0, totalCount = topics.length * RESOURCE_COLS;
+    topics.forEach(function (t) {
+      var arr = subjectProgress[t] || [];
+      for (var i = 0; i < RESOURCE_COLS; i++) if (arr[i]) doneCount++;
+    });
+ 
+    var headerRow = '<div class="resource-names-row">' +
+      '<div></div>' +
+      [0, 1, 2, 3].map(function (i) {
+        return '<input type="text" class="res-name" data-subject="' + esc(subject) + '" data-idx="' + i + '" value="' + esc(names[i] || "") + '" placeholder="Kaynak ' + (i + 1) + '"' + (readOnly ? ' disabled' : '') + ' />';
+      }).join("") +
+      '</div>';
+ 
+    var rows = topics.map(function (topic) {
+      var arr = subjectProgress[topic] || [];
+      return '<div class="topic-row">' +
+        '<div class="topic-name">' + esc(topic) + '</div>' +
+        [0, 1, 2, 3].map(function (i) {
+          return '<input type="checkbox" class="topic-mark" data-subject="' + esc(subject) + '" data-topic="' + esc(topic) + '" data-idx="' + i + '"' + (arr[i] ? ' checked' : '') + (readOnly ? ' disabled' : '') + ' />';
+        }).join("") +
+        '</div>';
+    }).join("");
+ 
+    return '' +
+      '<details class="topic-subject">' +
+        '<summary>' + esc(subject) + ' <span style="font-size:12px;color:var(--ink-soft);font-family:var(--font-body);">' + doneCount + '/' + totalCount + '</span></summary>' +
+        '<div class="topic-subject-body">' + headerRow + rows + '</div>' +
+      '</details>';
+  }
+ 
+  function renderEntryRow(e, opts) {
+    opts = opts || {};
+    var showStudent = opts.showStudent;
+    var stats = [];
+    if (e.questionCount != null && !isNaN(e.questionCount)) stats.push(fmtNum(e.questionCount) + ' soru');
+    if (e.durationMinutes != null && !isNaN(e.durationMinutes)) stats.push(fmtDuration(e.durationMinutes));
+    if (e.score != null && !isNaN(e.score)) stats.push(fmtNum(e.score) + ' puan');
+    return '' +
+      '<div class="entry">' +
+        '<div class="time">' + fmtTime(e.createdAt) + '</div>' +
+        '<div class="body">' +
+          (showStudent ? '<div class="student-name">' + esc(e.student) + '</div>' : '') +
+          '<div class="subject">' + esc(e.subject || "Ders belirtilmedi") + (e.topic ? '<span class="dot">·</span><span class="topic">' + esc(e.topic) + '</span>' : '') + '</div>' +
+          (e.note ? '<div class="note">' + esc(e.note) + '</div>' : '') +
+          (stats.length ? '<div class="note" style="color:var(--moss-dim);font-weight:600;">' + esc(stats.join(' · ')) + '</div>' : '') +
+        '</div>' +
+      '</div>';
+  }
+ 
+  function wireTopicGrid(root, opts) {
+    opts = opts || {};
+    var readOnly = !!opts.readOnly;
+    var getStudentName = opts.getStudentName || function () { return currentStudentName(); };
+    if (readOnly) return;
+    root.querySelectorAll(".res-name").forEach(function (input) {
+      input.addEventListener("change", function () {
+        var subject = input.getAttribute("data-subject");
+        var idx = parseInt(input.getAttribute("data-idx"), 10);
+        var names = (state.resourceNames[subject] || ["", "", "", ""]).slice();
+        names[idx] = input.value;
+        saveResourceNames(subject, names);
+      });
+    });
+    root.querySelectorAll(".topic-mark").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        var name = getStudentName();
+        if (!name) return;
+        toggleTopicMark(name, cb.getAttribute("data-subject"), cb.getAttribute("data-topic"), parseInt(cb.getAttribute("data-idx"), 10), cb.checked);
+      });
+    });
+  }
+ 
+  function wireStudent() {
+    var back = document.getElementById("back-splash");
+    if (back) back.addEventListener("click", function () { setView("home"); });
+ 
+    if (!currentStudentName()) {
+      var loginBtn = document.getElementById("login-submit");
+      var codeInput = document.getElementById("login-code");
+      if (loginBtn) loginBtn.addEventListener("click", function () {
+        var val = (codeInput.value || "").trim().toUpperCase();
+        var statusEl = document.getElementById("login-status");
+        if (!val) {
+          statusEl.textContent = "Kodu yazmalısın.";
+          statusEl.className = "status-line err";
+          return;
+        }
+        state.studentCode = val;
+        localStorage.setItem(STUDENT_CODE_KEY, val);
+        render();
+      });
+      if (codeInput) codeInput.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter" && loginBtn) loginBtn.click();
+      });
+      return;
+    }
+ 
+    var logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) logoutBtn.addEventListener("click", function () {
+      state.studentCode = "";
+      localStorage.removeItem(STUDENT_CODE_KEY);
+      state.studentTab = "log";
+      state.forceLevelPicker = false;
+      render();
+    });
+ 
+    var changeLevelBtn = document.getElementById("change-level-btn");
+    if (changeLevelBtn) changeLevelBtn.addEventListener("click", function () {
+      state.forceLevelPicker = true;
+      state.levelPickerGradeStep = false;
+      render();
+    });
+ 
+    if (!currentStudentLevel() || state.forceLevelPicker) {
+      if (state.levelPickerGradeStep) {
+        var gradeBack = document.getElementById("grade-step-back");
+        if (gradeBack) gradeBack.addEventListener("click", function () {
+          state.levelPickerGradeStep = false;
+          render();
+        });
+        document.querySelectorAll(".role-card[data-grade]").forEach(function (card) {
+          card.addEventListener("click", function () {
+            var grade = card.getAttribute("data-grade");
+            state.forceLevelPicker = false;
+            state.levelPickerGradeStep = false;
+            setStudentLevel(state.studentCode, "ara", grade);
+            render();
+          });
+        });
+        return;
+      }
+      document.querySelectorAll(".role-card[data-level]").forEach(function (card) {
+        card.addEventListener("click", function () {
+          var lvl = card.getAttribute("data-level");
+          if (lvl === "ara") {
+            state.levelPickerGradeStep = true;
+            render();
+            return;
+          }
+          state.forceLevelPicker = false;
+          setStudentLevel(state.studentCode, lvl);
+          render();
+        });
+      });
+      return;
+    }
+ 
+    document.querySelectorAll(".tab-row .tab-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.studentTab = btn.getAttribute("data-tab");
+        render();
+      });
+    });
+ 
+    if (state.studentTab === "topics") {
+      wireTopicGrid(document.getElementById("app"), { readOnly: false });
+      return;
+    }
+ 
+    if (state.studentTab === "weekly") {
+      var weekPrev = document.getElementById("week-prev");
+      if (weekPrev) weekPrev.addEventListener("click", function () {
+        state.studentWeekOffset -= 1;
+        render();
+      });
+      var weekNext = document.getElementById("week-next");
+      if (weekNext) weekNext.addEventListener("click", function () {
+        if (state.studentWeekOffset >= 0) return;
+        state.studentWeekOffset += 1;
+        render();
+      });
+      var weeklySave = document.getElementById("weekly-save");
+      if (weeklySave) weeklySave.addEventListener("click", async function () {
+        var statusEl = document.getElementById("weekly-status");
+        var bySubject = {};
+        document.querySelectorAll(".weekly-input").forEach(function (inp) {
+          var v = inp.value;
+          if (v !== "") bySubject[inp.getAttribute("data-subject")] = Number(v);
+        });
+        weeklySave.disabled = true;
+        statusEl.textContent = "Kaydediliyor...";
+        statusEl.className = "status-line";
+        var weekStart = weekStartForOffset(state.studentWeekOffset);
+        var res = await saveWeeklyQuestions(currentStudentName(), weekStart, bySubject);
+        weeklySave.disabled = false;
+        if (res.ok) {
+          statusEl.textContent = "Kaydedildi.";
+          statusEl.className = "status-line ok";
+          render();
+        } else {
+          statusEl.textContent = res.error;
+          statusEl.className = "status-line err";
+        }
+      });
+      return;
+    }
+ 
+    if (state.studentTab === "messages") {
+      document.querySelectorAll(".msg-tpl-btn").forEach(function (btn) {
+        btn.addEventListener("click", async function () {
+          var statusEl = document.getElementById("msg-status-line");
+          btn.disabled = true;
+          if (statusEl) { statusEl.textContent = "Gönderiliyor..."; statusEl.className = "status-line"; }
+          var res = await sendMessage(currentStudentName(), btn.getAttribute("data-text"));
+          btn.disabled = false;
+          if (statusEl) {
+            if (res.ok) { statusEl.textContent = "Gönderildi."; statusEl.className = "status-line ok"; render(); }
+            else { statusEl.textContent = res.error; statusEl.className = "status-line err"; }
+          }
+        });
+      });
+      return;
+    }
+ 
+    if (state.studentTab === "pomodoro") {
+      var swStart = document.getElementById("sw-start");
+      if (swStart) swStart.addEventListener("click", startStopwatch);
+      var swPause = document.getElementById("sw-pause");
+      if (swPause) swPause.addEventListener("click", pauseStopwatch);
+      var swReset = document.getElementById("sw-reset");
+      if (swReset) swReset.addEventListener("click", function () {
+        if (stopwatchElapsedSec() > 0 && !confirm("Sayacı sıfırlamak istediğine emin misin? Kaydedilmemiş süre silinecek.")) return;
+        resetStopwatch();
+      });
+      var swSubject = document.getElementById("sw-subject");
+      if (swSubject) swSubject.addEventListener("change", function () {
+        state.stopwatch.subject = swSubject.value;
+      });
+      var swSave = document.getElementById("sw-save");
+      if (swSave) swSave.addEventListener("click", async function () {
+        var statusEl = document.getElementById("sw-status");
+        var subject = (document.getElementById("sw-subject") || {}).value || "";
+        if (!subject) {
+          statusEl.textContent = "Kaydetmeden önce ders seç.";
+          statusEl.className = "status-line err";
+          return;
+        }
+        var minutes = Math.max(1, Math.round(stopwatchElapsedSec() / 60));
+        swSave.disabled = true;
+        statusEl.textContent = "Kaydediliyor...";
+        statusEl.className = "status-line";
+        var res = await addEntry({
+          student: currentStudentName(),
+          subject: subject,
+          topic: "",
+          note: "",
+          questionCount: null,
+          durationMinutes: minutes,
+          score: null,
+          date: todayStr()
+        });
+        swSave.disabled = false;
+        if (res.ok) {
+          statusEl.textContent = minutes + " dakika günlüğe eklendi.";
+          statusEl.className = "status-line ok";
+          resetStopwatch();
+        } else {
+          statusEl.textContent = res.error;
+          statusEl.className = "status-line err";
+        }
+      });
+      return;
+    }
+ 
+    var subjectSelect = document.getElementById("f-subject");
+    var topicSelect = document.getElementById("f-topic");
+    var subjectCustomWrap = document.getElementById("f-subject-custom-wrap");
+    var topicCustomWrap = document.getElementById("f-topic-custom-wrap");
+ 
+    function populateTopics(subject) {
+      var topics = dropdownSubjects(currentStudentLevel(), currentStudentGrade())[subject];
+      if (!topics) {
+        topicSelect.innerHTML = '<option value="">Önce ders seç</option>';
+        topicSelect.disabled = true;
+        topicCustomWrap.style.display = "none";
+        return;
+      }
+      topicSelect.disabled = false;
+      topicSelect.innerHTML = '<option value="">Seç...</option>' +
+        topics.map(function (t) { return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join("") +
+        '<option value="' + OTHER_TOPIC + '">Diğer (elle yaz)</option>';
+    }
+ 
+    if (subjectSelect) subjectSelect.addEventListener("change", function () {
+      var v = subjectSelect.value;
+      subjectCustomWrap.style.display = (v === OTHER_SUBJECT) ? "" : "none";
+      topicCustomWrap.style.display = "none";
+      populateTopics(v);
+    });
+ 
+    if (topicSelect) topicSelect.addEventListener("change", function () {
+      topicCustomWrap.style.display = (topicSelect.value === OTHER_TOPIC) ? "" : "none";
+    });
+ 
+    var submitBtn = document.getElementById("submit-entry");
+    if (submitBtn) submitBtn.addEventListener("click", async function () {
+      var name = currentStudentName();
+      var subjectVal = subjectSelect.value;
+      var subject = subjectVal === OTHER_SUBJECT
+        ? document.getElementById("f-subject-custom").value.trim()
+        : subjectVal;
+      var topicVal = topicSelect.value;
+      var topic = topicVal === OTHER_TOPIC
+        ? document.getElementById("f-topic-custom").value.trim()
+        : topicVal;
+      var note = document.getElementById("f-note").value.trim();
+      var questionCount = document.getElementById("f-questions").value;
+      var durationMinutes = document.getElementById("f-duration").value;
+      var score = document.getElementById("f-score").value;
+      var statusEl = document.getElementById("status-line");
+ 
+      if (!name) {
+        statusEl.textContent = "Önce adını yazmalısın.";
+        statusEl.className = "status-line err";
+        return;
+      }
+      if (!subject) {
+        statusEl.textContent = "Ders alanı boş olamaz.";
+        statusEl.className = "status-line err";
+        return;
+      }
+ 
+      submitBtn.disabled = true;
+      statusEl.textContent = "Kaydediliyor...";
+      statusEl.className = "status-line";
+ 
+      var res = await addEntry({
+        student: name,
+        subject: subject,
+        topic: topic,
+        note: note,
+        questionCount: questionCount === "" ? null : Number(questionCount),
+        durationMinutes: durationMinutes === "" ? null : Number(durationMinutes),
+        score: score === "" ? null : Number(score),
+        date: todayStr()
+      });
+ 
+      submitBtn.disabled = false;
+      if (res.ok) {
+        statusEl.textContent = "Kaydedildi.";
+        statusEl.className = "status-line ok";
+        render();
+      } else {
+        statusEl.textContent = res.error;
+        statusEl.className = "status-line err";
+      }
+    });
+  }
+ 
+  function renderCoach() {
+    if (!state.coachesLoaded) {
+      return '' +
+        '<div class="brand-mini"><img src="' + LOGO_URI + '" alt="" style="width:18px;height:auto;vertical-align:-4px;margin-right:6px;" /><strong>RehberMetre</strong><span>eğitimde başarının ölçüsü</span></div>' +
+        '<div class="topbar"><div><button class="back-link" id="back-splash">← Geri</button><h1 style="margin-top:6px;">Koç paneli</h1></div></div>' +
+        '<div class="empty">Kontrol ediliyor...</div>';
+    }
+ 
+    var name = currentCoachName();
+    if (!name) {
+      var noCoachesYet = Object.keys(state.coaches).length === 0;
+      return noCoachesYet ? renderCoachSetup() : renderCoachLogin();
+    }
+    var owner = isOwnerCoach();
+    if (state.coachTab === "coaches" && !owner) state.coachTab = "feed";
+ 
+    return '' +
+      '<div class="brand-mini"><img src="' + LOGO_URI + '" alt="" style="width:18px;height:auto;vertical-align:-4px;margin-right:6px;" /><strong>RehberMetre</strong><span>eğitimde başarının ölçüsü</span></div>' +
+      '<div class="topbar">' +
+        '<div><button class="back-link" id="back-splash">← Geri</button><h1 style="margin-top:6px;">Merhaba, ' + esc(name) + (owner ? ' <span style="font-size:12px;color:var(--moss-dim);font-weight:600;">(yönetici)</span>' : '') + '</h1></div>' +
+        '<div class="who"><button class="back-link" id="coach-logout-btn">çıkış yap</button></div>' +
+      '</div>' +
+      offlineBanner() +
+      '<div class="tab-row">' +
+        '<button class="tab-btn' + (state.coachTab === "feed" ? " active" : "") + '" data-tab="feed">Canlı Akış</button>' +
+        '<button class="tab-btn' + (state.coachTab === "topics" ? " active" : "") + '" data-tab="topics">Konu Takibi</button>' +
+        '<button class="tab-btn' + (state.coachTab === "messages" ? " active" : "") + '" data-tab="messages">Mesajlar</button>' +
+        '<button class="tab-btn' + (state.coachTab === "students" ? " active" : "") + '" data-tab="students">Öğrenciler</button>' +
+        (owner ? '<button class="tab-btn' + (state.coachTab === "coaches" ? " active" : "") + '" data-tab="coaches">Koçlar</button>' : '') +
+      '</div>' +
+      (state.coachTab === "topics" ? renderCoachTopics() :
+       state.coachTab === "messages" ? renderCoachMessages() :
+       state.coachTab === "students" ? renderCoachStudents() :
+       state.coachTab === "coaches" && owner ? renderCoachCoaches() :
+       renderCoachFeed());
+  }
+ 
+  function renderCoachSetup() {
+    return '' +
+      '<div class="brand-mini"><img src="' + LOGO_URI + '" alt="" style="width:18px;height:auto;vertical-align:-4px;margin-right:6px;" /><strong>RehberMetre</strong><span>eğitimde başarının ölçüsü</span></div>' +
+      '<div class="topbar"><div><button class="back-link" id="back-splash">← Geri</button><h1 style="margin-top:6px;">Koç hesabını oluştur</h1></div></div>' +
+      '<div class="card">' +
+        '<p style="color:var(--ink-soft);font-size:14px;margin-top:0;">Henüz koç kaydı yok. İlk koç hesabını sen oluşturuyorsun — bundan sonra panele yalnızca kod ile girilebilir.</p>' +
+        '<div class="field"><label for="setup-coach-name">Adın</label><input id="setup-coach-name" type="text" placeholder="örn. Elif Yıldız" /></div>' +
+        '<div class="field" style="margin-top:14px;"><button class="btn" id="setup-coach-btn">Hesabımı Oluştur</button><div class="status-line" id="setup-coach-status"></div></div>' +
+      '</div>';
+  }
+ 
+  function renderCoachLogin() {
+    var invalidCode = state.coachCode && !state.coaches[state.coachCode];
+    return '' +
+      '<div class="brand-mini"><img src="' + LOGO_URI + '" alt="" style="width:18px;height:auto;vertical-align:-4px;margin-right:6px;" /><strong>RehberMetre</strong><span>eğitimde başarının ölçüsü</span></div>' +
+      '<div class="topbar"><div><button class="back-link" id="back-splash">← Geri</button><h1 style="margin-top:6px;">Koç girişi</h1></div></div>' +
+      '<div class="card">' +
+        '<div class="field"><label for="coach-login-code">Koç kodun</label><input id="coach-login-code" type="text" maxlength="8" placeholder="örn. K3F9QZ" style="text-transform:uppercase;letter-spacing:.08em;font-size:18px;text-align:center;" /></div>' +
+        (invalidCode ? '<div class="status-line err">Bu kod tanınmıyor.</div>' : '') +
+        '<div class="field" style="margin-top:16px;"><button class="btn" id="coach-login-submit">Giriş yap</button><div class="status-line" id="coach-login-status"></div></div>' +
+      '</div>';
+  }
+ 
+  function renderCoachCoaches() {
+    var codes = Object.keys(state.coaches).sort(function (a, b) {
+      return (state.coaches[a].name || "").localeCompare(state.coaches[b].name || "", "tr");
+    });
+    var rows = codes.map(function (code) {
+      var c = state.coaches[code];
+      var isMe = code === state.coachCode;
+      return '<div class="entry">' +
+        '<div class="time"></div>' +
+        '<div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<div><div class="subject">' + esc(c.name) + (isMe ? ' <span style="color:var(--moss-dim);font-weight:600;">(sen)</span>' : '') + '</div><div class="topic" style="font-family:var(--font-display);font-size:17px;letter-spacing:.08em;color:var(--moss-dim);">' + esc(code) + '</div></div>' +
+          (isMe ? '' : '<button class="back-link remove-coach-btn" data-code="' + esc(code) + '">kaldır</button>') +
+        '</div>' +
+      '</div>';
+    }).join("");
+ 
+    return '' +
+      '<div class="card">' +
+        '<div class="field"><label for="new-coach-name">Yeni koç ekle</label><input id="new-coach-name" type="text" placeholder="örn. Ahmet Kara" /></div>' +
+        '<div class="field" style="margin-top:14px;"><button class="btn" id="add-coach-btn">Kod oluştur</button><div class="status-line" id="add-coach-status"></div></div>' +
+      '</div>' +
+      '<div class="section-label">Koçlar <span class="count">(' + codes.length + ')</span></div>' +
+      rows;
+  }
+ 
+  function renderCoachStudents() {
+    var codes = visibleStudentCodes().sort(function (a, b) {
+      return (state.students[a].name || "").localeCompare(state.students[b].name || "", "tr");
+    });
+ 
+    var rows = codes.length === 0
+      ? '<div class="empty">Henüz öğrenci eklenmedi.</div>'
+      : codes.map(function (code) {
+          var s = state.students[code];
+          var levelBadge = s.level ? levelLabelFor(s.level, s.grade) : "seviye seçilmedi";
+          return '<div class="entry">' +
+            '<div class="time"></div>' +
+            '<div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">' +
+              '<div><div class="subject">' + esc(s.name) + '<span class="dot">·</span><span class="topic">' + esc(levelBadge) + '</span></div><div class="topic" style="font-family:var(--font-display);font-size:17px;letter-spacing:.08em;color:var(--moss-dim);">' + esc(code) + '</div></div>' +
+              '<button class="back-link remove-student-btn" data-code="' + esc(code) + '">öğrenciyi kaldır</button>' +
+            '</div>' +
+          '</div>';
+        }).join("");
+ 
+    return '' +
+      '<div class="card">' +
+        '<div class="field"><label for="new-student-name">Yeni öğrenci ekle</label><input id="new-student-name" type="text" placeholder="örn. Mustafa Yılmaz" /></div>' +
+        '<div class="field" style="margin-top:14px;"><button class="btn" id="add-student-btn">Kod oluştur</button><div class="status-line" id="add-student-status"></div></div>' +
+      '</div>' +
+      '<div class="section-label">Öğrenci kodları <span class="count">(' + codes.length + ')</span></div>' +
+      rows;
+  }
+ 
+  function renderCoachFeed() {
+    var nameSet = visibleStudentNameSet();
+    var dateFiltered = state.entries.filter(function (e) { return e.date === state.coachDate && nameSet[e.student]; });
+    var studentNames = Array.from(new Set(dateFiltered.map(function (e) { return e.student; }))).sort();
+ 
+    var visible = state.coachStudentFilter === "__all__"
+      ? dateFiltered
+      : dateFiltered.filter(function (e) { return e.student === state.coachStudentFilter; });
+ 
+    var filterOptions = '<option value="__all__">Tüm öğrenciler</option>' +
+      studentNames.map(function (n) { return '<option value="' + esc(n) + '"' + (state.coachStudentFilter === n ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join("");
+ 
+    var body;
+    if (visible.length === 0) {
+      body = '<div class="empty">Bu tarihte henüz kayıt girilmedi.</div>';
+    } else if (state.coachStudentFilter !== "__all__") {
+      body = visible.map(function (e) { return renderEntryRow(e, { showStudent: false }); }).join("");
+    } else {
+      // group by student, most recent activity first
+      var groups = {};
+      visible.forEach(function (e) {
+        if (!groups[e.student]) groups[e.student] = [];
+        groups[e.student].push(e);
+      });
+      var order = Object.keys(groups).sort(function (a, b) {
+        return groups[b][0].createdAt - groups[a][0].createdAt;
+      });
+      body = order.map(function (name) {
+        var rows = groups[name];
+        var totalQ = rows.reduce(function (s, e) { return s + (e.questionCount != null && !isNaN(e.questionCount) ? e.questionCount : 0); }, 0);
+        var totalMin = rows.reduce(function (s, e) { return s + (e.durationMinutes != null && !isNaN(e.durationMinutes) ? e.durationMinutes : 0); }, 0);
+        var totalsBits = [];
+        if (totalQ > 0) totalsBits.push(fmtNum(totalQ) + ' soru');
+        if (totalMin > 0) totalsBits.push(fmtDuration(totalMin));
+        return '<div class="student-group">' +
+          '<div class="student-group-head"><h3>' + esc(name) + '</h3><span class="n">' + rows.length + ' kayıt' + (totalsBits.length ? ' · ' + esc(totalsBits.join(' · ')) : '') + '</span></div>' +
+          rows.map(function (e) { return renderEntryRow(e, { showStudent: false }); }).join("") +
+          '</div>';
+      }).join("");
+    }
+ 
+    return '' +
+      '<div class="filters" style="margin-bottom:22px;">' +
+        '<input type="date" id="f-date" value="' + state.coachDate + '" max="' + todayStr() + '" />' +
+        '<select id="f-student">' + filterOptions + '</select>' +
+        '<span class="who">' + studentNames.length + ' öğrenci · ' + dateFiltered.length + ' kayıt</span>' +
+      '</div>' +
+      body;
+  }
+ 
+  function renderCoachTopics() {
+    var nameSet = visibleStudentNameSet();
+    var studentIds = Object.keys(state.topicProgress);
+    var studentNames = studentIds.map(function (id) { return state.topicProgress[id].student; }).filter(function (n) { return nameSet[n]; }).sort();
+    // also fold in anyone who has only logged entries so far, not yet a topic mark
+    state.entries.forEach(function (e) { if (nameSet[e.student] && studentNames.indexOf(e.student) === -1) studentNames.push(e.student); });
+    studentNames = Array.from(new Set(studentNames)).sort();
+ 
+    if (!state.coachTopicsStudent || !nameSet[state.coachTopicsStudent]) state.coachTopicsStudent = studentNames[0] || "";
+ 
+    if (studentNames.length === 0) {
+      return '<div class="empty">Henüz hiçbir öğrenci kayıt girmedi.</div>';
+    }
+ 
+    var options = studentNames.map(function (n) {
+      return '<option value="' + esc(n) + '"' + (n === state.coachTopicsStudent ? ' selected' : '') + '>' + esc(n) + '</option>';
+    }).join("");
+ 
+    var sId = slug(state.coachTopicsStudent);
+    var progress = (state.topicProgress[sId] && state.topicProgress[sId].subjects) || {};
+ 
+    var studentLevel = null;
+    var studentGrade = null;
+    Object.keys(state.students).forEach(function (code) {
+      if (state.students[code].name === state.coachTopicsStudent) {
+        studentLevel = state.students[code].level;
+        studentGrade = state.students[code].grade;
+      }
+    });
+    var subjects = resourceSubjects(studentLevel, studentGrade);
+ 
+    var grids = Object.keys(subjects).map(function (subject) {
+      return renderTopicGrid(subject, subjects[subject], progress[subject] || {}, { readOnly: true });
+    }).join("");
+ 
+    var weekStart = weekStartForOffset(0);
+    var wDocId = slug(state.coachTopicsStudent) + "_" + weekStart;
+    var wRec = state.weeklyQuestions[wDocId];
+    var wBySubject = (wRec && wRec.bySubject) || {};
+    var wTotal = Object.keys(wBySubject).reduce(function (s, k) { return s + (Number(wBySubject[k]) || 0); }, 0);
+    var weeklyCard = '' +
+      '<div class="card" style="margin-bottom:20px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:6px;">' +
+          '<label style="margin:0;">Bu hafta çözülen sorular <span style="opacity:.7;">(' + esc(weekRangeLabel(weekStart)) + ')</span></label>' +
+          '<span style="font-size:13px;color:var(--ink-soft);">Toplam: <strong style="color:var(--ink);">' + wTotal + '</strong></span>' +
+        '</div>' +
+        (Object.keys(wBySubject).length === 0
+          ? '<p style="color:var(--ink-soft);font-size:13px;margin:0;">Bu hafta henüz kayıt girilmedi.</p>'
+          : '<div class="weekly-grid">' + Object.keys(wBySubject).map(function (s) {
+              return '<div class="weekly-row"><label>' + esc(s) + '</label><span style="font-weight:600;">' + esc(fmtNum(wBySubject[s])) + '</span></div>';
+            }).join("") + '</div>') +
+      '</div>';
+ 
+    return '' +
+      '<div class="filters" style="margin-bottom:22px;">' +
+        '<select id="f-topics-student">' + options + '</select>' +
+        '<span class="who">Kaynak isimlerini öğrenci tarafında düzenleyebilirsin — burası izleme amaçlı.</span>' +
+      '</div>' +
+      weeklyCard +
+      grids;
+  }
+ 
+  function renderCoachMessages() {
+    var nameSet = visibleStudentNameSet();
+    var myMessages = state.messages.filter(function (m) { return nameSet[m.student]; });
+    if (myMessages.length === 0) {
+      return '<div class="empty">Henüz mesaj yok.</div>';
+    }
+    var groups = {};
+    myMessages.forEach(function (m) {
+      var d = new Date(m.createdAt);
+      var key = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(m);
+    });
+    var dates = Object.keys(groups).sort().reverse();
+    return dates.map(function (dateKey) {
+      return '<div class="section-label">' + esc(fmtDateLabel(dateKey)) + '</div>' +
+        groups[dateKey].map(function (m) {
+          return '<div class="entry"><div class="time">' + fmtTime(m.createdAt) + '</div><div class="body"><div class="student-name">' + esc(m.student) + '</div><div class="note">' + esc(m.text) + '</div></div></div>';
+        }).join("");
+    }).join("");
+  }
+ 
+  function wireCoach() {
+    var back = document.getElementById("back-splash");
+    if (back) back.addEventListener("click", function () { setView("home"); });
+ 
+    if (!state.coachesLoaded) return;
+ 
+    if (!currentCoachName()) {
+      var setupBtn = document.getElementById("setup-coach-btn");
+      if (setupBtn) setupBtn.addEventListener("click", async function () {
+        var input = document.getElementById("setup-coach-name");
+        var statusEl = document.getElementById("setup-coach-status");
+        var name = input.value.trim();
+        if (!name) {
+          statusEl.textContent = "Önce adını yaz.";
+          statusEl.className = "status-line err";
+          return;
+        }
+        setupBtn.disabled = true;
+        statusEl.textContent = "Oluşturuluyor...";
+        statusEl.className = "status-line";
+        var res = await addCoach(name, "owner");
+        setupBtn.disabled = false;
+        if (res.ok) {
+          state.coachCode = res.code;
+          localStorage.setItem(COACH_CODE_KEY, res.code);
+          render();
+        } else {
+          statusEl.textContent = res.error;
+          statusEl.className = "status-line err";
+        }
+      });
+ 
+      var loginBtn = document.getElementById("coach-login-submit");
+      var codeInput = document.getElementById("coach-login-code");
+      if (loginBtn) loginBtn.addEventListener("click", function () {
+        var val = (codeInput.value || "").trim().toUpperCase();
+        var statusEl = document.getElementById("coach-login-status");
+        if (!val) {
+          statusEl.textContent = "Kodu yazmalısın.";
+          statusEl.className = "status-line err";
+          return;
+        }
+        state.coachCode = val;
+        localStorage.setItem(COACH_CODE_KEY, val);
+        render();
+      });
+      if (codeInput) codeInput.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter" && loginBtn) loginBtn.click();
+      });
+      return;
+    }
+ 
+    var coachLogoutBtn = document.getElementById("coach-logout-btn");
+    if (coachLogoutBtn) coachLogoutBtn.addEventListener("click", function () {
+      state.coachCode = "";
+      localStorage.removeItem(COACH_CODE_KEY);
+      state.coachTab = "feed";
+      render();
+    });
+ 
+    document.querySelectorAll(".tab-row .tab-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.coachTab = btn.getAttribute("data-tab");
+        render();
+      });
+    });
+ 
+    if (state.coachTab === "topics") {
+      var sel = document.getElementById("f-topics-student");
+      if (sel) sel.addEventListener("change", function () {
+        state.coachTopicsStudent = sel.value;
+        render();
+      });
+      return;
+    }
+ 
+    if (state.coachTab === "coaches") {
+      var addCoachBtn = document.getElementById("add-coach-btn");
+      if (addCoachBtn) addCoachBtn.addEventListener("click", async function () {
+        var input = document.getElementById("new-coach-name");
+        var statusEl = document.getElementById("add-coach-status");
+        var name = input.value.trim();
+        if (!name) {
+          statusEl.textContent = "Önce koçun adını yaz.";
+          statusEl.className = "status-line err";
+          return;
+        }
+        addCoachBtn.disabled = true;
+        statusEl.textContent = "Ekleniyor...";
+        statusEl.className = "status-line";
+        var res = await addCoach(name);
+        addCoachBtn.disabled = false;
+        if (res.ok) {
+          statusEl.textContent = esc(name) + " eklendi — kod: " + res.code;
+          statusEl.className = "status-line ok";
+          input.value = "";
+          render();
+        } else {
+          statusEl.textContent = res.error;
+          statusEl.className = "status-line err";
+        }
+      });
+      document.querySelectorAll(".remove-coach-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          if (!confirm("Bu koçu kaldırmak istediğine emin misin? Bu kodla tekrar giriş yapamaz.")) return;
+          removeCoach(btn.getAttribute("data-code"));
+        });
+      });
+      return;
+    }
+ 
+    if (state.coachTab === "students") {
+      var addBtn = document.getElementById("add-student-btn");
+      if (addBtn) addBtn.addEventListener("click", async function () {
+        var input = document.getElementById("new-student-name");
+        var statusEl = document.getElementById("add-student-status");
+        var name = input.value.trim();
+        if (!name) {
+          statusEl.textContent = "Önce öğrencinin adını yaz.";
+          statusEl.className = "status-line err";
+          return;
+        }
+        addBtn.disabled = true;
+        statusEl.textContent = "Ekleniyor...";
+        statusEl.className = "status-line";
+        var res = await addStudent(name);
+        addBtn.disabled = false;
+        if (res.ok) {
+          statusEl.textContent = esc(name) + " eklendi — kod: " + res.code;
+          statusEl.className = "status-line ok";
+          input.value = "";
+          render();
+        } else {
+          statusEl.textContent = res.error;
+          statusEl.className = "status-line err";
+        }
+      });
+      document.querySelectorAll(".remove-student-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          if (!confirm("Bu öğrencinin kodunu kaldırmak istediğine emin misin? Öğrenci bu kodla tekrar giriş yapamaz.")) return;
+          removeStudent(btn.getAttribute("data-code"));
+        });
+      });
+      return;
+    }
+ 
+    var dateInput = document.getElementById("f-date");
+    if (dateInput) dateInput.addEventListener("change", function () {
+      state.coachDate = dateInput.value || todayStr();
+      state.coachStudentFilter = "__all__";
+      render();
+    });
+ 
+    var studentSelect = document.getElementById("f-student");
+    if (studentSelect) studentSelect.addEventListener("change", function () {
+      state.coachStudentFilter = studentSelect.value;
+      render();
+    });
+  }
+ 
+  // initial paint (before db resolves) then wire db
+  render();
+  initDb();
+})();
+</script>
+</body>
+</html>
